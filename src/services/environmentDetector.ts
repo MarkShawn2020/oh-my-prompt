@@ -116,9 +116,7 @@ export class EnvironmentDetector {
           await vscode.window.showInformationMessage(
             "Please configure global rules in Custom Instructions.",
           );
-          throw new Error(
-            "Please configure global rules in Cursor Settings menu",
-          );
+          return "cursor://settings";
         case "vscode":
         case "unknown":
         default:
