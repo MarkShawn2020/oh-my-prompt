@@ -44,28 +44,6 @@ export class PromptManager {
         types.map(async (type) => {
           const typeDir = path.join(baseDir, type);
           await fs.mkdir(typeDir, { recursive: true });
-
-          // Create a default prompt if directory is empty
-          const files = await fs.readdir(typeDir);
-          if (files.length === 0) {
-            const defaultPrompt: Prompt = {
-              meta: {
-                type,
-                id: "default",
-                name: `Default ${type} prompt`,
-                description: `A default ${type} prompt`,
-                author: "Oh My Prompt",
-                version: "1.0.0",
-                date: new Date().toISOString(),
-                license: "MIT",
-              },
-              content:
-                type === "global"
-                  ? "You are an AI assistant helping with coding tasks."
-                  : "You are an AI assistant helping with this specific project.",
-            };
-            await this.savePrompt(defaultPrompt);
-          }
         }),
       );
     } catch (error) {

@@ -167,7 +167,16 @@ export class StatusBarItems {
     }));
 
     const quickPick = vscode.window.createQuickPick();
-    quickPick.items = items;
+    quickPick.items = [
+      {
+        label: "$(plus) Create New",
+        description: `Create a new ${type} prompt`,
+        alwaysShow: true,
+        kind: vscode.QuickPickItemKind.Default,
+      },
+      { kind: vscode.QuickPickItemKind.Separator, label: "Prompts" },
+      ...items,
+    ];
     quickPick.placeholder = `Select ${type} prompt...`;
     quickPick.matchOnDescription = true;
     quickPick.matchOnDetail = true;
@@ -199,6 +208,15 @@ export class StatusBarItems {
     quickPick.onDidAccept(async () => {
       const selected = quickPick.selectedItems[0] as any;
       if (selected) {
+        if (selected.label === "$(plus) Create New") {
+          const prompt = await this.promptManager.createPrompt(type);
+          const tomlPath = this.getPromptTomlPath(prompt);
+          const doc = await vscode.workspace.openTextDocument(tomlPath);
+          await vscode.window.showTextDocument(doc);
+          quickPick.hide();
+          return;
+        }
+
         if (type === "global") {
           await this.promptManager.syncGlobalPrompt(selected.prompt);
           this.updatePromptItem("global", selected.prompt);
