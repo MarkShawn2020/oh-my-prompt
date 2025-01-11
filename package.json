@@ -3,7 +3,7 @@
   "displayName": "Oh My Prompt",
   "description": "A VSCode extension for managing multiple AI prompts",
   "publisher": "markshawn2020",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "icon": "assets/logo-128.jpeg",
   "repository": {
     "type": "git",
