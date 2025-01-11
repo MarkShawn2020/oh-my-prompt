@@ -9,10 +9,10 @@ import * as TOML from "@iarna/toml";
 import { formatError } from "@oh-my-commit/shared";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { openCursorSettings } from "../utils/open-cursor-settings";
 import { Service } from "typedi";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
+import { openCursorSettings } from "../utils/open-cursor-settings";
 
 import { Prompt, PromptMeta, PromptSchema, PromptType } from "../types/prompt";
 import { VscodeLogger } from "../vscode-logger";
@@ -365,6 +365,7 @@ export class PromptManager {
       "project",
       workspaceRoot,
     );
+    this.logger.info({ ideRulesPath });
 
     // Skip if it's a special path (like cursor://settings)
     if (ideRulesPath === "cursor://settings") {

@@ -5,11 +5,10 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import { openCursorSettings } from "../utils/open-cursor-settings";
-import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { Service } from "typedi";
+import * as vscode from "vscode";
 import { VscodeLogger } from "../vscode-logger";
 
 export type IDEType = "vscode" | "windsurf" | "cursor" | "unknown";
@@ -112,11 +111,6 @@ export class EnvironmentDetector {
           break;
         case "cursor":
           if (type === "global") {
-            // For Cursor global rules, show notification and return special path
-            await openCursorSettings();
-            await vscode.window.showInformationMessage(
-              "Please configure global rules in Custom Instructions.",
-            );
             return "cursor://settings";
           }
           // For project rules, proceed normally

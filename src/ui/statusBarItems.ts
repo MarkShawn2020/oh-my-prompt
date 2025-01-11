@@ -318,6 +318,8 @@ export class StatusBarItems {
             quickPick.hide();
           } else if (selected.prompt) {
             const ide = await this.environmentDetector.detect();
+            this.logger.info({ ide, type, selected });
+
             if (ide === "cursor") {
               if (type === "global") {
                 await this.promptManager.copyToClipboardForCursor(
