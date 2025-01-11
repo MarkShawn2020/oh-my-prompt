@@ -4,6 +4,10 @@
   "description": "A VSCode extension for managing multiple AI prompts",
   "publisher": "markshawn2020",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markshawn2020/oh-my-prompt"
+  },
   "engines": {
     "vscode": "^1.86.0"
   },
@@ -11,7 +15,7 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -36,9 +40,9 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "ext:package": "vsce package --no-dependencies -o dist",
+    "ext:package": "DIR=release && mkdir -p $DIR && vsce package --no-dependencies -o $DIR",
     "ext:publish:vscode": "dotenv -- vsce publish --no-dependencies -p \"$VSCE_PAT\"",
-    "ext:publish:ovsx": "dotenv -- ovsx publish \"$(ls -t dist/*.vsix | head -n1)\" -p \"$OVSX_TOKEN\""
+    "ext:publish:ovsx": "dotenv -- ovsx publish \"$(ls -t release/*.vsix | head -n1)\" -p \"$OVSX_TOKEN\""
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

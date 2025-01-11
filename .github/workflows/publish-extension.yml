@@ -68,7 +68,7 @@ jobs:
         with:
           name: ${{ steps.package.outputs.name }} v${{ steps.package.outputs.version }}
           tag_name: v${{ steps.package.outputs.version }}
-          files: dist/*.vsix
+          files: release/*.vsix
           draft: false
           prerelease: false
           generate_release_notes: true

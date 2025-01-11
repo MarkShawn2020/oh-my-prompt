@@ -12,3 +12,9 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+docs
+.idea
+.env
+.windsurfrules
+.github
+release
