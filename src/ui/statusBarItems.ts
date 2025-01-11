@@ -17,7 +17,7 @@ import { PromptManager } from "../services/promptManager";
 import { Prompt, PromptType } from "../types/prompt";
 import { VscodeLogger } from "../vscode-logger";
 
-const PRIORITY = 103;
+const PRIORITY = 100;
 
 @Service()
 export class StatusBarItems {

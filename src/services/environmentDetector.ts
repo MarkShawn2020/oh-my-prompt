@@ -111,12 +111,20 @@ export class EnvironmentDetector {
           );
           break;
         case "cursor":
-          // For Cursor, we'll show a notification to guide users
-          await openCursorSettings();
-          await vscode.window.showInformationMessage(
-            "Please configure global rules in Custom Instructions.",
-          );
-          return "cursor://settings";
+          if (type === "global") {
+            // For Cursor global rules, show notification and return special path
+            await openCursorSettings();
+            await vscode.window.showInformationMessage(
+              "Please configure global rules in Custom Instructions.",
+            );
+            return "cursor://settings";
+          }
+          // For project rules, proceed normally
+          if (!workspaceRoot) {
+            throw new Error("Workspace root is required for project rules");
+          }
+          rulesPath = path.join(workspaceRoot, ".cursorrules");
+          break;
         case "vscode":
         case "unknown":
         default:

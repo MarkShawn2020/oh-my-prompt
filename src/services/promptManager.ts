@@ -360,17 +360,15 @@ export class PromptManager {
     prompt: Prompt,
     workspaceRoot: string,
   ): Promise<void> {
-    if (prompt.meta.type !== "project") {
-      throw new Error("Can only sync project prompts");
-    }
-
     // Get the IDE rules file path
     const ideRulesPath = await this.environmentDetector.getRulesPath(
       "project",
       workspaceRoot,
     );
-    if (!ideRulesPath) {
-      throw new Error("No IDE rules file found");
+
+    // Skip if it's a special path (like cursor://settings)
+    if (ideRulesPath === "cursor://settings") {
+      return;
     }
 
     try {
