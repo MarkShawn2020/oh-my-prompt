@@ -51,9 +51,10 @@ export class PromptManager {
                 date: new Date().toISOString(),
                 license: "MIT",
               },
-              content: type === "global" 
-                ? "You are an AI assistant helping with coding tasks."
-                : "You are an AI assistant helping with this specific project.",
+              content:
+                type === "global"
+                  ? "You are an AI assistant helping with coding tasks."
+                  : "You are an AI assistant helping with this specific project.",
             };
             await this.savePrompt(defaultPrompt);
           }
@@ -86,8 +87,41 @@ export class PromptManager {
               path.join(promptDir, file),
               "utf-8",
             );
-            // TODO: Parse TOML and return Prompt object
-            return {} as Prompt;
+
+            // Parse TOML sections
+            const sections = content.split("\n\n");
+            const metaSection = sections[0];
+            const contentSection = sections[1];
+
+            // Parse meta section
+            const meta: Record<string, string> = {};
+            metaSection
+              .split("\n")
+              .slice(1) // Skip [meta] line
+              .forEach((line) => {
+                const [key, value] = line.split(" = ");
+                meta[key.trim()] = value.trim().replace(/"/g, "");
+              });
+
+            // Parse content section
+            const contentMatch = contentSection.match(
+              /content = """\n([\s\S]*)\n"""/,
+            );
+            const promptContent = contentMatch ? contentMatch[1] : "";
+
+            return {
+              meta: {
+                type: meta.type as PromptType,
+                id: meta.id,
+                name: meta.name,
+                description: meta.description,
+                author: meta.author,
+                version: meta.version,
+                date: meta.date,
+                license: meta.license,
+              },
+              content: promptContent,
+            } as Prompt;
           }),
       );
       return prompts;
