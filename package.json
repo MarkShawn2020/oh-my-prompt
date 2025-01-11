@@ -69,11 +69,12 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@oh-my-commit/shared": "^0.26.5",
+    "inversify": "^6.0.1",
+    "prettyjson": "^1.2.5",
     "reflect-metadata": "^0.2.2",
     "typedi": "^0.10.0",
-    "inversify": "^6.0.1",
-    "@iarna/toml": "^2.2.5",
-    "prettyjson": "^1.2.5"
+    "zod": "^3.24.1"
   }
 }

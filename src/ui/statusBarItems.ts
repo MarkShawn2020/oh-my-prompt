@@ -141,9 +141,64 @@ export class StatusBarItems {
     });
 
     if (selected) {
-      const prompt = await this.promptManager.createPrompt(selected.type);
-      const tomlPath = this.getPromptTomlPath(prompt);
-      const doc = await vscode.workspace.openTextDocument(tomlPath);
+      const prompt = await this.promptManager.createPromptUnsaved(
+        selected.type,
+      );
+      const tempPath = await this.promptManager.writePromptToTemp(prompt);
+      const doc = await vscode.workspace.openTextDocument(tempPath);
+
+      // Register save handler
+      const disposable = vscode.workspace.onDidSaveTextDocument(
+        async (document) => {
+          if (document.uri.fsPath === tempPath) {
+            // Update prompt content
+            prompt.content = document.getText();
+
+            // Ask user if they want to save the prompt
+            const answer = await vscode.window.showInformationMessage(
+              "Would you like to save this prompt?",
+              { modal: true },
+              "Save",
+              "Don't Save",
+            );
+
+            if (answer === "Save") {
+              await this.promptManager.savePrompt(prompt);
+              vscode.window.showInformationMessage("Prompt saved successfully");
+            }
+
+            // Cleanup
+            disposable.dispose();
+            await this.promptManager.cleanupTempPrompts();
+          }
+        },
+      );
+
+      // Register close handler
+      const closeDisposable = vscode.window.onDidChangeVisibleTextEditors(
+        async (editors) => {
+          if (!editors.some((e) => e.document.uri.fsPath === tempPath)) {
+            const answer = await vscode.window.showInformationMessage(
+              "Would you like to save this prompt before closing?",
+              { modal: true },
+              "Save",
+              "Don't Save",
+            );
+
+            if (answer === "Save") {
+              prompt.content = doc.getText();
+              await this.promptManager.savePrompt(prompt);
+              vscode.window.showInformationMessage("Prompt saved successfully");
+            }
+
+            // Cleanup
+            closeDisposable.dispose();
+            disposable.dispose();
+            await this.promptManager.cleanupTempPrompts();
+          }
+        },
+      );
+
       await vscode.window.showTextDocument(doc);
     }
   }
@@ -215,9 +270,6 @@ export class StatusBarItems {
               quickPick.items = quickPick.items.filter(
                 (i: any) => i.prompt?.meta.id !== item.prompt.meta.id,
               );
-              vscode.window.showInformationMessage(
-                `Successfully deleted prompt "${item.prompt.meta.name}"`,
-              );
             }
           }
         } catch (error) {
@@ -234,15 +286,132 @@ export class StatusBarItems {
 
         try {
           if (selected.label === "$(plus) Create New") {
-            const prompt = await this.promptManager.createPrompt(type);
-            const tomlPath = this.getPromptTomlPath(prompt);
-            const doc = await vscode.workspace.openTextDocument(tomlPath);
+            const prompt = await this.promptManager.createPromptUnsaved(type);
+            const tempPath = await this.promptManager.writePromptToTemp(prompt);
+            const doc = await vscode.workspace.openTextDocument(tempPath);
+
+            // Register save handler
+            const disposable = vscode.workspace.onDidSaveTextDocument(
+              async (document) => {
+                if (document.uri.fsPath === tempPath) {
+                  // Update prompt content
+                  prompt.content = document.getText();
+
+                  // Ask user if they want to save the prompt
+                  const answer = await vscode.window.showInformationMessage(
+                    "Would you like to save this prompt?",
+                    { modal: true },
+                    "Save",
+                    "Don't Save",
+                  );
+
+                  if (answer === "Save") {
+                    await this.promptManager.savePrompt(prompt);
+                    vscode.window.showInformationMessage(
+                      "Prompt saved successfully",
+                    );
+                  }
+
+                  // Cleanup
+                  disposable.dispose();
+                  await this.promptManager.cleanupTempPrompts();
+                }
+              },
+            );
+
+            // Register close handler
+            const closeDisposable = vscode.window.onDidChangeVisibleTextEditors(
+              async (editors) => {
+                if (!editors.some((e) => e.document.uri.fsPath === tempPath)) {
+                  const answer = await vscode.window.showInformationMessage(
+                    "Would you like to save this prompt before closing?",
+                    { modal: true },
+                    "Save",
+                    "Don't Save",
+                  );
+
+                  if (answer === "Save") {
+                    prompt.content = doc.getText();
+                    await this.promptManager.savePrompt(prompt);
+                    vscode.window.showInformationMessage(
+                      "Prompt saved successfully",
+                    );
+                  }
+
+                  // Cleanup
+                  closeDisposable.dispose();
+                  disposable.dispose();
+                  await this.promptManager.cleanupTempPrompts();
+                }
+              },
+            );
+
             await vscode.window.showTextDocument(doc);
           } else if (selected.label === "$(cloud-download) Import from IDE") {
-            const prompt = await this.promptManager.importFromIdeRules(type);
+            const prompt =
+              await this.promptManager.importFromIdeRulesUnsaved(type);
             if (prompt) {
-              const tomlPath = this.getPromptTomlPath(prompt);
-              const doc = await vscode.workspace.openTextDocument(tomlPath);
+              const tempPath =
+                await this.promptManager.writePromptToTemp(prompt);
+              const doc = await vscode.workspace.openTextDocument(tempPath);
+
+              // Register save handler
+              const disposable = vscode.workspace.onDidSaveTextDocument(
+                async (document) => {
+                  if (document.uri.fsPath === tempPath) {
+                    // Update prompt content
+                    prompt.content = document.getText();
+
+                    // Ask user if they want to save the prompt
+                    const answer = await vscode.window.showInformationMessage(
+                      "Would you like to save this prompt?",
+                      { modal: true },
+                      "Save",
+                      "Don't Save",
+                    );
+
+                    if (answer === "Save") {
+                      await this.promptManager.savePrompt(prompt);
+                      vscode.window.showInformationMessage(
+                        "Prompt saved successfully",
+                      );
+                    }
+
+                    // Cleanup
+                    disposable.dispose();
+                    await this.promptManager.cleanupTempPrompts();
+                  }
+                },
+              );
+
+              // Register close handler
+              const closeDisposable =
+                vscode.window.onDidChangeVisibleTextEditors(async (editors) => {
+                  if (
+                    !editors.some((e) => e.document.uri.fsPath === tempPath)
+                  ) {
+                    const answer = await vscode.window.showInformationMessage(
+                      "Would you like to save this prompt before closing?",
+                      { modal: true },
+                      "Save",
+                      "Don't Save",
+                    );
+
+                    if (answer === "Save") {
+                      prompt.content = doc.getText();
+                      await this.promptManager.savePrompt(prompt);
+                      vscode.window.showInformationMessage(
+                        "Prompt saved successfully",
+                      );
+                    }
+
+                    // Cleanup
+                    closeDisposable.dispose();
+                    disposable.dispose();
+                    await this.promptManager.cleanupTempPrompts();
+                  }
+                });
+
               await vscode.window.showTextDocument(doc);
             }
           } else if (selected.label === "$(edit) Edit Current") {

@@ -8,11 +8,13 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
+import * as TOML from "@iarna/toml";
 
 import { Prompt, PromptType } from "../types/prompt";
 import { Service } from "typedi";
 import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
+import { formatError } from "@oh-my-commit/shared";
 
 @Service()
 export class PromptManager {
@@ -127,68 +129,6 @@ export class PromptManager {
     }
   }
 
-  /**
-   * Check if there are unsaved changes in IDE rules file
-   */
-  async hasUnsavedChanges(type: PromptType): Promise<boolean> {
-    try {
-      const workspaceRoot =
-        type === "project"
-          ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-          : undefined;
-
-      const rulesPath = await this.environmentDetector.getRulesPath(
-        type,
-        workspaceRoot,
-      );
-      this.logger.info(
-        `Checking for changes in ${type} rules at: ${rulesPath}`,
-      );
-
-      if (await this.fileExists(rulesPath)) {
-        const content = await fs.readFile(rulesPath, "utf-8");
-        const prompts = await this.loadPrompts(type);
-        const currentPrompt = prompts.find((p) => p.content === content);
-        return !currentPrompt;
-      }
-      return false;
-    } catch (error) {
-      this.logger.error(`Failed to check for unsaved changes:`, error);
-      throw error; // Re-throw to handle in UI
-    }
-  }
-
-  /**
-   * Handle sync conflicts between IDE rules and prompts
-   */
-  async handleSyncConflict(type: PromptType): Promise<void> {
-    try {
-      const ide = await this.environmentDetector.detect();
-      const rulesPath = await this.environmentDetector.getRulesPath(type);
-
-      if (await this.fileExists(rulesPath)) {
-        const content = await fs.readFile(rulesPath, "utf-8");
-        const prompts = await this.loadPrompts(type);
-        const currentPrompt = prompts.find((p) => p.content === content);
-
-        if (!currentPrompt) {
-          const answer = await vscode.window.showWarningMessage(
-            `Detected changes in ${ide} ${type} rules. What would you like to do?`,
-            { modal: true },
-            "Import as New",
-            "Keep Current",
-          );
-
-          if (answer === "Import as New") {
-            await this.importFromIdeRules(type);
-          }
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Failed to handle sync conflict:`, error);
-    }
-  }
-
   private async fileExists(filepath: string): Promise<boolean> {
     try {
       await fs.access(filepath);
@@ -254,29 +194,14 @@ export class PromptManager {
     }
   }
 
-  async savePrompt(prompt: Prompt): Promise<void> {
+  /**
+   * Save prompt to permanent storage
+   */
+  public async savePrompt(prompt: Prompt): Promise<void> {
     const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
-    const filepath = path.join(promptDir, `${prompt.meta.id}.toml`);
-    try {
-      // Convert Prompt to TOML format
-      const tomlContent = `[meta]
-type = "${prompt.meta.type}"
-id = "${prompt.meta.id}"
-name = "${prompt.meta.name}"
-description = "${prompt.meta.description}"
-author = "${prompt.meta.author}"
-version = "${prompt.meta.version}"
-date = "${prompt.meta.date}"
-license = "${prompt.meta.license}"
-
-content = """
-${prompt.content}
-"""`;
-      await fs.writeFile(filepath, tomlContent);
-    } catch (error) {
-      this.logger.error("Failed to save prompt:", error);
-      throw error;
-    }
+    await fs.mkdir(promptDir, { recursive: true });
+    const filePath = path.join(promptDir, `${prompt.meta.id}.toml`);
+    await this.writePromptToFile(prompt, filePath);
   }
 
   /**
@@ -322,6 +247,129 @@ ${prompt.content}
 
     await this.savePrompt(prompt);
     return prompt;
+  }
+
+  /**
+   * Create a new empty prompt without saving
+   */
+  async createPromptUnsaved(type: PromptType): Promise<Prompt> {
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "")
+      .replace(/[TZ]/g, "_")
+      .slice(0, -4);
+
+    return {
+      meta: {
+        type,
+        id: timestamp,
+        name: "New Prompt",
+        description: "No description yet",
+        author: "User",
+        version: "0.0.1",
+        date: new Date().toISOString(),
+        license: "MIT",
+      },
+      content: `
+# Enter your prompt content here...`,
+    };
+  }
+
+  /**
+   * Write prompt content to a file
+   */
+  private async writePromptToFile(
+    prompt: Prompt,
+    filePath: string,
+  ): Promise<void> {
+    try {
+      const content = TOML.stringify(prompt);
+      await fs.writeFile(filePath, content, "utf-8");
+    } catch (error) {
+      this.logger.error(`Failed to write prompt to file:`, error);
+      throw new Error(`Failed to write prompt to file: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Write prompt content to a temporary file and return the file path
+   */
+  public async writePromptToTemp(prompt: Prompt): Promise<string> {
+    const tempDir = path.join(this.getPromptDir(), ".temp");
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempPath = path.join(tempDir, `${prompt.meta.id}.toml`);
+    await this.writePromptToFile(prompt, tempPath);
+    return tempPath;
+  }
+
+  /**
+   * Import rules from IDE into a temporary prompt
+   */
+  async importFromIdeRulesUnsaved(
+    type: PromptType,
+  ): Promise<Prompt | undefined> {
+    try {
+      const workspaceRoot =
+        type === "project"
+          ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+          : undefined;
+
+      const rulesPath = await this.environmentDetector.getRulesPath(
+        type,
+        workspaceRoot,
+      );
+
+      const content = await fs.readFile(rulesPath, "utf-8");
+      const ide = await this.environmentDetector.detect();
+
+      // Parse metadata from content if available
+      const metaMatch = content.match(/---\n([\s\S]*?)\n---/);
+      let title = "Untitled";
+      let version = "0.0.1";
+      let author = "User";
+
+      if (metaMatch) {
+        const metaContent = metaMatch[1];
+        const titleMatch = metaContent.match(/title:\s*(.+)/);
+        const versionMatch = metaContent.match(/version:\s*(.+)/);
+        const authorMatch = metaContent.match(/author:\s*(.+)/);
+
+        if (titleMatch) title = titleMatch[1].trim();
+        if (versionMatch) version = versionMatch[1].trim();
+        if (authorMatch) author = authorMatch[1].trim();
+      }
+
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "")
+        .replace(/[TZ]/g, "_")
+        .slice(0, -4);
+      const sanitizedTitle = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      const promptId = `${sanitizedTitle}_${timestamp}`;
+
+      return {
+        meta: {
+          type,
+          id: promptId,
+          name: title,
+          description: `${ide} ${type} Rules - Created ${new Date().toLocaleString()}`,
+          author,
+          version,
+          date: new Date().toISOString(),
+          license: "MIT",
+        },
+        content,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to import ${type} rules from IDE:`, error);
+      vscode.window.showErrorMessage(
+        `Failed to import ${type} rules: ${formatError(error)}`,
+      );
+      return undefined;
+    }
   }
 
   /**
@@ -448,6 +496,18 @@ ${prompt.content}
       }
     } catch (error) {
       this.logger.error(`Failed to setup rule watchers:`, error);
+    }
+  }
+
+  /**
+   * Clean up temporary prompt files
+   */
+  public async cleanupTempPrompts() {
+    const tempDir = path.join(this.getPromptDir(), ".temp");
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      this.logger.error("Failed to cleanup temp prompts:", error);
     }
   }
 

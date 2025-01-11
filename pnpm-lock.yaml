@@ -26,6 +26,9 @@ importers:
       typedi:
         specifier: ^0.10.0
         version: 0.10.0
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
     devDependencies:
       '@types/mocha':
         specifier: ^10.0.10
