@@ -5,6 +5,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+import { openCursorSettings } from "../utils/open-cursor-settings";
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -118,7 +119,7 @@ export class EnvironmentDetector {
             )
             .then((selection) => {
               if (selection === "Open Settings") {
-                vscode.commands.executeCommand("Cursor Settings");
+                void openCursorSettings();
               }
             });
           throw new Error(

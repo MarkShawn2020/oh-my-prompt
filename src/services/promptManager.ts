@@ -5,19 +5,19 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs/promises";
 import * as TOML from "@iarna/toml";
+import { formatError } from "@oh-my-commit/shared";
+import * as fs from "fs/promises";
+import * as path from "path";
+import { openCursorSettings } from "../utils/open-cursor-settings";
+import { Service } from "typedi";
 import { v4 as uuidv4 } from "uuid";
-import git from "simple-git";
+import * as vscode from "vscode";
 
 import { Prompt, PromptMeta, PromptSchema, PromptType } from "../types/prompt";
-import { Service } from "typedi";
-import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
-import { formatError } from "@oh-my-commit/shared";
 import { DocumentWatcher } from "./documentWatcher";
+import { EnvironmentDetector } from "./environmentDetector";
 
 @Service()
 export class PromptManager {
@@ -398,7 +398,7 @@ export class PromptManager {
       );
 
       if (action === "Open Settings") {
-        await vscode.commands.executeCommand("Cursor Settings");
+        await openCursorSettings();
       }
     } catch (error) {
       this.logger.error("Failed to copy rules to clipboard:", error);
