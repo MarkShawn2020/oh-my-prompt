@@ -24,7 +24,7 @@
   "scripts": {
     "vscode:prepublish": "pnpm run package",
     "compile": "webpack",
-    "watch": "webpack --watch",
+    "watch": "webpack --watch ",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
@@ -41,6 +41,7 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "eslint": "^9.16.0",
+    "handlebars-loader": "^1.7.3",
     "ts-loader": "^9.5.1",
     "typescript": "^5.7.2",
     "webpack": "^5.95.0",

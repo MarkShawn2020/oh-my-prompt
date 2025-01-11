@@ -40,7 +40,7 @@ const extensionConfig = {
             loader: 'ts-loader'
           }
         ]
-      }
+      },
     ]
   },
   devtool: 'nosources-source-map',

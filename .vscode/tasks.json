@@ -6,7 +6,20 @@
 		{
 			"type": "npm",
 			"script": "watch",
-			"problemMatcher": "$ts-webpack-watch",
+			"problemMatcher": [
+				{
+					"base": "$ts-webpack",
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": {
+							"regexp": "Compiler starting"
+						},
+						"endsPattern": {
+							"regexp": "Compiler is watching files for updates"
+						}
+					}
+				},
+			],
 			"isBackground": true,
 			"presentation": {
 				"reveal": "never",
