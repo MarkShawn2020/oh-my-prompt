@@ -318,15 +318,43 @@ export class StatusBarItems {
             quickPick.hide();
           } else if (selected.prompt) {
             const ide = await this.environmentDetector.detect();
-            if (ide === "cursor" && type === "global") {
-              await this.promptManager.copyToClipboardForCursor(
-                selected.prompt,
-              );
+            if (ide === "cursor") {
+              if (type === "global") {
+                await this.promptManager.copyToClipboardForCursor(
+                  selected.prompt,
+                );
+              } else {
+                // 同步到 IDE
+                try {
+                  const workspaceRoot =
+                    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                  if (workspaceRoot) {
+                    await this.promptManager.syncProjectPrompt(
+                      selected.prompt,
+                      workspaceRoot,
+                    );
+                    vscode.window.showInformationMessage(
+                      `Project prompt "${selected.prompt.meta.name}" has been activated`,
+                    );
+                  }
+                } catch (error) {
+                  this.logger.error(
+                    "Failed to sync project prompt to IDE:",
+                    error,
+                  );
+                  vscode.window.showErrorMessage(
+                    `Failed to sync project prompt: ${error}`,
+                  );
+                }
+              }
             } else {
-              // 同步到 IDE
+              // 其他 IDE 的处理逻辑
               try {
                 if (type === "global") {
                   await this.promptManager.syncGlobalPrompt(selected.prompt);
+                  vscode.window.showInformationMessage(
+                    `Global prompt "${selected.prompt.meta.name}" has been activated`,
+                  );
                 } else {
                   const workspaceRoot =
                     vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -335,15 +363,18 @@ export class StatusBarItems {
                       selected.prompt,
                       workspaceRoot,
                     );
+                    vscode.window.showInformationMessage(
+                      `Project prompt "${selected.prompt.meta.name}" has been activated`,
+                    );
                   }
                 }
-                vscode.window.showInformationMessage(
-                  `Prompt "${selected.prompt.meta.name}" has been activated`,
-                );
               } catch (error) {
-                this.logger.error("Failed to sync prompt to IDE:", error);
+                this.logger.error(
+                  `Failed to sync ${type} prompt to IDE:`,
+                  error,
+                );
                 vscode.window.showErrorMessage(
-                  `Failed to sync prompt: ${error}`,
+                  `Failed to sync ${type} prompt: ${error}`,
                 );
               }
             }
