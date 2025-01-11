@@ -16,6 +16,7 @@ import { formatError } from "@oh-my-commit/shared";
 import * as fs from "fs";
 import { EnvironmentDetector } from "../services/environmentDetector";
 import { DocumentWatcher } from "../services/documentWatcher";
+import { capitalize } from "lodash";
 
 const PRIORITY = 103;
 
@@ -49,11 +50,9 @@ export class StatusBarItems {
     );
 
     item.name = `${type} Prompt`;
-    item.text = `$(symbol-keyword) ${type}`;
-    item.command =
-      type === "global"
-        ? "oh-my-prompt.manageGlobalPrompts"
-        : "oh-my-prompt.manageProjectPrompts";
+    const Ctype = capitalize(type);
+    item.text = Ctype;
+    item.command = `oh-my-prompt.manage${Ctype}Prompts`;
 
     // 监听规则文件变更
     this.disposables.push(

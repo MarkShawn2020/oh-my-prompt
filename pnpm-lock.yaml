@@ -14,9 +14,15 @@ importers:
       '@oh-my-commit/shared':
         specifier: ^0.26.5
         version: 0.26.5
+      '@types/lodash':
+        specifier: ^4.17.14
+        version: 4.17.14
       inversify:
         specifier: ^6.0.1
         version: 6.2.1(reflect-metadata@0.2.2)
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       prettyjson:
         specifier: ^1.2.5
         version: 1.2.5
@@ -262,6 +268,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/lodash@4.17.14':
+    resolution: {integrity: sha512-jsxagdikDiDBeIRaPYtArcT8my4tN1og7MtMRquFT3XNA6axxyHDRUemqDz/taRDdOUn0GnGHRCuff4q48sW9A==}
 
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
@@ -2451,6 +2460,8 @@ snapshots:
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
+
+  '@types/lodash@4.17.14': {}
 
   '@types/mocha@10.0.10': {}
 

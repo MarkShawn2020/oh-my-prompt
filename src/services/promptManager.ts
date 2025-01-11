@@ -21,7 +21,7 @@ import { DocumentWatcher } from "./documentWatcher";
 
 @Service()
 export class PromptManager {
-  private readonly PROMPT_DIR = "~/.oh-my-prompt/prompts";
+  private readonly PROMPT_DIR = "~/.neurora/oh-my-prompt/prompts";
   private extensionContext?: vscode.ExtensionContext;
   private pendingImportItem?: vscode.StatusBarItem;
 

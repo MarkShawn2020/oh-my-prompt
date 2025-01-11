@@ -2,6 +2,7 @@
   "name": "oh-my-prompt",
   "displayName": "Oh My Prompt",
   "description": "A VSCode extension for managing multiple AI prompts",
+  "publisher": "markshawn2020",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.86.0"
@@ -68,7 +69,9 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@oh-my-commit/shared": "^0.26.5",
+    "@types/lodash": "^4.17.14",
     "inversify": "^6.0.1",
+    "lodash": "^4.17.21",
     "prettyjson": "^1.2.5",
     "reflect-metadata": "^0.2.2",
     "simple-git": "^3.27.0",
