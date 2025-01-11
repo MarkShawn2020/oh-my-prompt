@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆形 -->
+  <circle cx="256" cy="256" r="240" fill="#2D3748"/>
+  
+  <!-- 命令提示符符号 -->
+  <path d="M140 180l100 76-100 76" stroke="#38B2AC" stroke-width="32" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- 提示符闪烁效果 -->
+  <rect x="272" y="300" width="100" height="32" fill="#38B2AC" rx="4"/>
+  
+  <!-- 装饰性圆环 -->
+  <circle cx="256" cy="256" r="240" stroke="#4FD1C5" stroke-width="8" fill="none" opacity="0.3"/>
+</svg>

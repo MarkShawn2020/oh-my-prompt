@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 主背景 -->
+  <rect x="56" y="56" width="400" height="400" rx="32" fill="url(#grad1)"/>
+  
+  <!-- 对话框图标 - 代表 prompts -->
+  <path d="M156 206h200v140h-85l-15 40-15-40h-85z" fill="white" opacity="0.9"/>
+  
+  <!-- AI 符号 -->
+  <path d="M256 166c-30 0-54.5 24.5-54.5 54.5s24.5 54.5 54.5 54.5 54.5-24.5 54.5-54.5S286 166 256 166zm0 89c-19 0-34.5-15.5-34.5-34.5S237 186 256 186s34.5 15.5 34.5 34.5S275 255 256 255z" fill="white"/>
+  
+  <!-- 装饰性连接线 -->
+  <path d="M196 286l-20 20m160-160l-20 20" stroke="white" stroke-width="4" opacity="0.6"/>
+  
+  <!-- 点缀元素 -->
+  <circle cx="176" cy="306" r="8" fill="white" opacity="0.8"/>
+  <circle cx="336" cy="146" r="8" fill="white" opacity="0.8"/>
+</svg>

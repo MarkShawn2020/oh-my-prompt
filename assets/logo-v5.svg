@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E1B4B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#312E81;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 光晕效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 主背景 -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+  
+  <!-- Global Prompt -->
+  <g transform="translate(256, 256)" filter="url(#glow)">
+    <path d="M-120,-60 L-80,-60 A80,80 0 1,1 -80,60 L-120,60"
+          fill="none"
+          stroke="#C4B5FD"
+          stroke-width="16"
+          stroke-linecap="round"/>
+    
+    <!-- Project Prompt -->
+    <path d="M20,-40 L60,-40 A60,60 0 1,1 60,40 L20,40"
+          fill="none"
+          stroke="#93C5FD"
+          stroke-width="16"
+          stroke-linecap="round"/>
+          
+    <!-- 中心点缀 -->
+    <circle cx="-80" cy="0" r="8" fill="#C4B5FD"/>
+    <circle cx="60" cy="0" r="8" fill="#93C5FD"/>
+  </g>
+  
+  <!-- 装饰性光点 -->
+  <g opacity="0.6">
+    <circle cx="156" cy="156" r="4" fill="#C4B5FD"/>
+    <circle cx="356" cy="356" r="4" fill="#93C5FD"/>
+  </g>
+</svg>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="512" height="512" fill="#18181B"/>
+  
+  <!-- Terminal Window -->
+  <path d="M96 96h320v320H96z" fill="#27272A"/>
+  <path d="M96 96h320v32H96z" fill="#3F3F46"/>
+  
+  <!-- Window Buttons -->
+  <circle cx="116" cy="112" r="8" fill="#EF4444"/>
+  <circle cx="140" cy="112" r="8" fill="#F59E0B"/>
+  <circle cx="164" cy="112" r="8" fill="#10B981"/>
+  
+  <!-- Command Prompt -->
+  <path d="M136 200l80 60-80 60" stroke="#A855F7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Oh! -->
+  <text x="256" y="230" font-family="monospace" font-size="48" fill="#A855F7" text-anchor="middle">Oh!</text>
+  
+  <!-- Cursor -->
+  <rect x="280" y="280" width="24" height="48" fill="#A855F7">
+    <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+</svg>
