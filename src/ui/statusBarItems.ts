@@ -218,9 +218,6 @@ export class StatusBarItems {
               const filePath = this.getPromptTomlPath(prompt);
               const doc = await vscode.workspace.openTextDocument(filePath);
               await vscode.window.showTextDocument(doc);
-              vscode.window.showInformationMessage(
-                "Prompt imported successfully",
-              );
               quickPick.hide();
             }
           } else if (selected.label === "$(edit) Edit Current") {

@@ -12,12 +12,12 @@ import * as TOML from "@iarna/toml";
 import { v4 as uuidv4 } from "uuid";
 import git from "simple-git";
 
-import { Prompt, PromptMeta, PromptType } from "../types/prompt";
+import { Prompt, PromptMeta, PromptSchema, PromptType } from "../types/prompt";
 import { Service } from "typedi";
 import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
 import { formatError } from "@oh-my-commit/shared";
-import { DocumentWatcher } from "../document-watcher"; // Add this line
+import { DocumentWatcher } from "./documentWatcher"; // Add this line
 
 @Service()
 export class PromptManager {
@@ -160,43 +160,10 @@ export class PromptManager {
             const filePath = path.join(promptDir, file);
             try {
               const content = await fs.readFile(filePath, "utf-8");
-
-              // Parse TOML sections
-              const sections = content.split("\n\n");
-              const metaSection = sections[0];
-              const contentSection = sections[1];
-
-              // Parse meta section
-              const meta: Record<string, string> = {};
-              metaSection
-                .split("\n")
-                .slice(1) // Skip [meta] line
-                .forEach((line) => {
-                  const [key, value] = line.split(" = ");
-                  meta[key.trim()] = value.trim().replace(/"/g, "");
-                });
-
-              // Parse content section
-              const contentMatch = contentSection.match(
-                /content = """\n([\s\S]*)\n"""/,
-              );
-              const promptContent = contentMatch ? contentMatch[1] : "";
-
-              const prompt = {
-                meta: {
-                  type: meta.type as PromptType,
-                  id: meta.id,
-                  name: meta.name,
-                  description: meta.description,
-                  author: meta.author,
-                  version: meta.version,
-                  date: meta.date,
-                  license: meta.license,
-                },
-                content: promptContent,
-              } as Prompt;
-
-              return { prompt, path: filePath };
+              return {
+                path: filePath,
+                prompt: PromptSchema.parse(TOML.parse(content)),
+              };
             } catch (error) {
               this.logger.error(
                 `Failed to parse prompt file ${filePath}:`,
@@ -322,21 +289,9 @@ export class PromptManager {
       const ide = await this.environmentDetector.detect();
 
       // Parse metadata from content if available
-      const metaMatch = content.match(/---\n([\s\S]*?)\n---/);
       let title = "Untitled";
       let version = "0.0.1";
       let author = "User";
-
-      if (metaMatch) {
-        const metaContent = metaMatch[1];
-        const titleMatch = metaContent.match(/title:\s*(.+)/);
-        const versionMatch = metaContent.match(/version:\s*(.+)/);
-        const authorMatch = metaContent.match(/author:\s*(.+)/);
-
-        if (titleMatch) title = titleMatch[1].trim();
-        if (versionMatch) version = versionMatch[1].trim();
-        if (authorMatch) author = authorMatch[1].trim();
-      }
 
       const timestamp = new Date()
         .toISOString()
@@ -386,11 +341,12 @@ export class PromptManager {
     }
 
     try {
-      await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
-      this.documentWatcher.markSynced(ideRulesPath);
-      this.logger.info(
-        `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
-      );
+      await this.documentWatcher.trackSyncOperation(ideRulesPath, async () => {
+        await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
+        this.logger.info(
+          `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
+        );
+      });
     } catch (error) {
       this.logger.error("Failed to sync prompt to IDE rules:", error);
       throw error;
@@ -418,11 +374,12 @@ export class PromptManager {
     }
 
     try {
-      await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
-      this.documentWatcher.markSynced(ideRulesPath);
-      this.logger.info(
-        `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
-      );
+      await this.documentWatcher.trackSyncOperation(ideRulesPath, async () => {
+        await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
+        this.logger.info(
+          `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
+        );
+      });
     } catch (error) {
       this.logger.error("Failed to sync prompt to IDE rules:", error);
       throw error;
