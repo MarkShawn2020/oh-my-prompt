@@ -248,12 +248,13 @@ export class StatusBarItems {
           const button = event.button;
           const item = event.item as PromptQuickPickItem;
 
-          if (!item.path) {
+          if (!item.path && !item.prompt) {
             return;
           }
 
           if (button.tooltip === "Edit TOML file") {
-            const doc = await vscode.workspace.openTextDocument(item.path);
+            const filePath = item.path || this.getPromptTomlPath(item.prompt!);
+            const doc = await vscode.workspace.openTextDocument(filePath);
             await vscode.window.showTextDocument(doc);
           } else if (button.tooltip === "Delete prompt") {
             const answer = await vscode.window.showWarningMessage(
@@ -262,12 +263,13 @@ export class StatusBarItems {
               "Confirm",
             );
             if (answer === "Confirm") {
-              await this.promptManager.deletePromptFile(item.path);
+              if (item.prompt) {
+                await this.promptManager.deletePrompt(item.prompt);
+              } else if (item.path) {
+                await this.promptManager.deletePromptFile(item.path);
+              }
               // Keep default items and filter out the deleted prompt
-              quickPick.items = [
-                ...defaultItems,
-                ...items.filter((i) => i.path !== item.path),
-              ];
+              quickPick.items = quickPick.items.filter((i) => i !== item);
             }
           }
         } catch (error) {
@@ -321,14 +323,37 @@ export class StatusBarItems {
                 selected.prompt,
               );
             } else {
-              const filePath = this.getPromptTomlPath(selected.prompt);
-              const doc = await vscode.workspace.openTextDocument(filePath);
-              await vscode.window.showTextDocument(doc);
+              // 同步到 IDE
+              try {
+                if (type === "global") {
+                  await this.promptManager.syncGlobalPrompt(selected.prompt);
+                } else {
+                  const workspaceRoot =
+                    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                  if (workspaceRoot) {
+                    await this.promptManager.syncProjectPrompt(
+                      selected.prompt,
+                      workspaceRoot,
+                    );
+                  }
+                }
+                vscode.window.showInformationMessage(
+                  `Prompt "${selected.prompt.meta.name}" has been activated`,
+                );
+              } catch (error) {
+                this.logger.error("Failed to sync prompt to IDE:", error);
+                vscode.window.showErrorMessage(
+                  `Failed to sync prompt: ${error}`,
+                );
+              }
             }
             quickPick.hide();
           }
         } catch (error) {
-          this.logger.error("Failed to handle quickpick selection:", error);
+          this.logger.error(
+            `Failed to handle ${type} prompt quick pick:`,
+            error,
+          );
           vscode.window.showErrorMessage(
             `Failed to handle selection: ${formatError(error)}`,
           );
