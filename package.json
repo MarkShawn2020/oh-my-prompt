@@ -16,10 +16,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "oh-my-prompt.createPrompt",
-        "title": "Oh My Prompt: Create New Prompt"
-      },
-      {
         "command": "oh-my-prompt.selectGlobalPrompt",
         "title": "Oh My Prompt: Select Global Prompt"
       },

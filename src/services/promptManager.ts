@@ -201,7 +201,24 @@ export class PromptManager {
     const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
     await fs.mkdir(promptDir, { recursive: true });
     const filePath = path.join(promptDir, `${prompt.meta.id}.toml`);
-    await this.writePromptToFile(prompt, filePath);
+    const tempPath = path.join(
+      this.getPromptDir(),
+      ".temp",
+      `${prompt.meta.id}.toml`,
+    );
+
+    try {
+      // If temp file exists, move it to the target location
+      if (await this.fileExists(tempPath)) {
+        await fs.rename(tempPath, filePath);
+      } else {
+        // If no temp file, write directly
+        await this.writePromptToFile(prompt, filePath);
+      }
+    } catch (error) {
+      this.logger.error("Failed to save prompt:", error);
+      throw error;
+    }
   }
 
   /**
@@ -501,11 +518,21 @@ export class PromptManager {
 
   /**
    * Clean up temporary prompt files
+   * @param promptId Optional prompt ID to clean up specific temp file
    */
-  public async cleanupTempPrompts() {
+  public async cleanupTempPrompts(promptId?: string) {
     const tempDir = path.join(this.getPromptDir(), ".temp");
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      if (promptId) {
+        // Delete specific temp file
+        const tempPath = path.join(tempDir, `${promptId}.toml`);
+        if (await this.fileExists(tempPath)) {
+          await fs.unlink(tempPath);
+        }
+      } else {
+        // Delete entire temp directory
+        await fs.rm(tempDir, { recursive: true, force: true });
+      }
     } catch (error) {
       this.logger.error("Failed to cleanup temp prompts:", error);
     }

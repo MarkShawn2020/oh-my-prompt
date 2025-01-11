@@ -62,12 +62,6 @@ export class StatusBarItems {
   }
 
   private initializeItems() {
-    // Initialize new prompt button
-    this.newPromptItem.text = "$(plus)";
-    this.newPromptItem.tooltip = "Create a new prompt";
-    this.newPromptItem.command = "oh-my-prompt.createPrompt";
-    this.newPromptItem.show();
-
     // Initialize global prompt
     this.globalPromptItem.text = "$(globe)";
     this.globalPromptItem.command = "oh-my-prompt.selectGlobalPrompt";
@@ -128,79 +122,6 @@ export class StatusBarItems {
       prompt.meta.type,
       `${prompt.meta.id}.toml`,
     );
-  }
-
-  async showCreatePromptQuickPick() {
-    const items = [
-      { label: "Global Prompt", type: "global" as const },
-      { label: "Project Prompt", type: "project" as const },
-    ];
-
-    const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: "Select prompt type to create...",
-    });
-
-    if (selected) {
-      const prompt = await this.promptManager.createPromptUnsaved(
-        selected.type,
-      );
-      const tempPath = await this.promptManager.writePromptToTemp(prompt);
-      const doc = await vscode.workspace.openTextDocument(tempPath);
-
-      // Register save handler
-      const disposable = vscode.workspace.onDidSaveTextDocument(
-        async (document) => {
-          if (document.uri.fsPath === tempPath) {
-            // Update prompt content
-            prompt.content = document.getText();
-
-            // Ask user if they want to save the prompt
-            const answer = await vscode.window.showInformationMessage(
-              "Would you like to save this prompt?",
-              { modal: true },
-              "Save",
-              "Don't Save",
-            );
-
-            if (answer === "Save") {
-              await this.promptManager.savePrompt(prompt);
-              vscode.window.showInformationMessage("Prompt saved successfully");
-            }
-
-            // Cleanup
-            disposable.dispose();
-            await this.promptManager.cleanupTempPrompts();
-          }
-        },
-      );
-
-      // Register close handler
-      const closeDisposable = vscode.window.onDidChangeVisibleTextEditors(
-        async (editors) => {
-          if (!editors.some((e) => e.document.uri.fsPath === tempPath)) {
-            const answer = await vscode.window.showInformationMessage(
-              "Would you like to save this prompt before closing?",
-              { modal: true },
-              "Save",
-              "Don't Save",
-            );
-
-            if (answer === "Save") {
-              prompt.content = doc.getText();
-              await this.promptManager.savePrompt(prompt);
-              vscode.window.showInformationMessage("Prompt saved successfully");
-            }
-
-            // Cleanup
-            closeDisposable.dispose();
-            disposable.dispose();
-            await this.promptManager.cleanupTempPrompts();
-          }
-        },
-      );
-
-      await vscode.window.showTextDocument(doc);
-    }
   }
 
   async showPromptQuickPick(type: PromptType) {
@@ -302,7 +223,6 @@ export class StatusBarItems {
                     "Would you like to save this prompt?",
                     { modal: true },
                     "Save",
-                    "Don't Save",
                   );
 
                   if (answer === "Save") {
@@ -327,7 +247,6 @@ export class StatusBarItems {
                     "Would you like to save this prompt before closing?",
                     { modal: true },
                     "Save",
-                    "Don't Save",
                   );
 
                   if (answer === "Save") {
@@ -367,7 +286,6 @@ export class StatusBarItems {
                       "Would you like to save this prompt?",
                       { modal: true },
                       "Save",
-                      "Don't Save",
                     );
 
                     if (answer === "Save") {
@@ -394,7 +312,6 @@ export class StatusBarItems {
                       "Would you like to save this prompt before closing?",
                       { modal: true },
                       "Save",
-                      "Don't Save",
                     );
 
                     if (answer === "Save") {
