@@ -11,9 +11,14 @@ import * as vscode from "vscode";
 import { PromptManager } from "./services/promptManager";
 import { StatusBarItems } from "./ui/statusBarItems";
 import Container from "typedi";
+import { DocumentWatcher } from "./services/documentWatcher";
 
 export function activate(context: vscode.ExtensionContext) {
   const statusBarItems = Container.get(StatusBarItems);
+  const documentWatcher = Container.get(DocumentWatcher);
+
+  // Start watching for document saves
+  documentWatcher.start();
 
   // Register commands
   context.subscriptions.push(
@@ -28,8 +33,9 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  // Add status bar items to subscriptions
+  // Add items to subscriptions for cleanup
   context.subscriptions.push(statusBarItems);
+  context.subscriptions.push(documentWatcher);
 }
 
 export function deactivate() {}

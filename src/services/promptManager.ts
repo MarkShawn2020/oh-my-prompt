@@ -11,16 +11,17 @@ import * as fs from "fs/promises";
 
 import { Prompt, PromptType } from "../types/prompt";
 import { Service } from "typedi";
+import { EnvironmentDetector } from "./environmentDetector";
+import { VscodeLogger } from "../vscode-logger";
 
 @Service()
 export class PromptManager {
   private readonly PROMPT_DIR = "~/.oh-my-prompt/prompts";
-  private readonly WINDSURF_GLOBAL_PATH =
-    "~/.codeium/windsurf/memories/global_rules.md";
-  private readonly CURSOR_RULES_PATH = "~/.cursorrules";
-  private readonly WINDSURF_PROJECT_PATH = ".windsurfrules";
 
-  constructor() {
+  constructor(
+    private environmentDetector: EnvironmentDetector,
+    private logger: VscodeLogger,
+  ) {
     this.ensurePromptDirectories();
   }
 
@@ -61,7 +62,7 @@ export class PromptManager {
         }),
       );
     } catch (error) {
-      console.error("Failed to create prompt directories:", error);
+      this.logger.error("Failed to create prompt directories:", error);
     }
   }
 
@@ -126,7 +127,7 @@ export class PromptManager {
       );
       return prompts;
     } catch (error) {
-      console.error(`Failed to load ${type} prompts:`, error);
+      this.logger.error(`Failed to load ${type} prompts:`, error);
       return [];
     }
   }
@@ -154,31 +155,44 @@ ${prompt.content}
 """`;
       await fs.writeFile(filepath, tomlContent);
     } catch (error) {
-      console.error("Failed to save prompt:", error);
+      this.logger.error("Failed to save prompt:", error);
       throw error;
     }
   }
 
-  async syncToWindsurfGlobal(prompt: Prompt): Promise<void> {
+  /**
+   * Sync a global prompt to the current IDE's global rules location
+   */
+  async syncGlobalPrompt(prompt: Prompt): Promise<void> {
     if (prompt.meta.type !== "global") {
-      throw new Error("Can only sync global prompts to Windsurf global");
+      throw new Error("Can only sync global prompts to global rules");
     }
-    await fs.writeFile(
-      this.expandPath(this.WINDSURF_GLOBAL_PATH),
-      prompt.content,
-    );
+
+    const ide = await this.environmentDetector.detect();
+    const targetPath = await this.environmentDetector.getRulesPath("global");
+
+    this.logger.info(`Syncing global prompt to ${targetPath} (IDE: ${ide})`);
+    await fs.writeFile(targetPath, prompt.content);
   }
 
-  async syncToWindsurfProject(
+  /**
+   * Sync a project prompt to the current IDE's project rules location
+   */
+  async syncProjectPrompt(
     prompt: Prompt,
     workspaceRoot: string,
   ): Promise<void> {
     if (prompt.meta.type !== "project") {
-      throw new Error("Can only sync project prompts to Windsurf project");
+      throw new Error("Can only sync project prompts to project rules");
     }
-    await fs.writeFile(
-      path.join(workspaceRoot, this.WINDSURF_PROJECT_PATH),
-      prompt.content,
+
+    const ide = await this.environmentDetector.detect();
+    const targetPath = await this.environmentDetector.getRulesPath(
+      "project",
+      workspaceRoot,
     );
+
+    this.logger.info(`Syncing project prompt to ${targetPath} (IDE: ${ide})`);
+    await fs.writeFile(targetPath, prompt.content);
   }
 }

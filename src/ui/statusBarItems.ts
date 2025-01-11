@@ -119,12 +119,12 @@ export class StatusBarItems {
 
     if (selected) {
       if (type === "global") {
-        await this.promptManager.syncToWindsurfGlobal(selected.prompt);
+        await this.promptManager.syncGlobalPrompt(selected.prompt);
         this.updatePromptItem("global", selected.prompt);
       } else {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
         if (workspaceRoot) {
-          await this.promptManager.syncToWindsurfProject(
+          await this.promptManager.syncProjectPrompt(
             selected.prompt,
             workspaceRoot,
           );
