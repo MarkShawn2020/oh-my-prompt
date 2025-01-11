@@ -433,16 +433,16 @@ export class PromptManager {
 
               if (!currentPrompt) {
                 const answer = await vscode.window.showInformationMessage(
-                  `${ide} ${type} rules have been modified. Would you like to import the changes?`,
+                  `${ide} ${type} rules have been modified. Would you like to sync the changes?`,
                   {
                     modal: false,
                     detail:
-                      "The changes can be imported as a new prompt in Oh My Prompt",
+                      "The changes can be synced as a new prompt in Oh My Prompt",
                   },
-                  "Import Now",
+                  "Sync Now",
                 );
 
-                if (answer === "Import Now") {
+                if (answer === "Sync Now") {
                   const prompt = await this.importFromIdeRules(type);
                   if (prompt) {
                     const tomlPath = path.join(

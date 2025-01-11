@@ -15,60 +15,97 @@ import * as path from "path";
 import { formatError } from "@oh-my-commit/shared";
 import * as fs from "fs";
 import { EnvironmentDetector } from "../services/environmentDetector";
+import { DocumentWatcher } from "../services/documentWatcher";
 
 const PRIORITY = 103;
 
 @Service()
 export class StatusBarItems {
-  private globalPromptItem: vscode.StatusBarItem;
-  private projectPromptItem: vscode.StatusBarItem;
+  private globalPromptItem!: vscode.StatusBarItem;
+  private projectPromptItem!: vscode.StatusBarItem;
+  private disposables: vscode.Disposable[] = [];
 
   constructor(
     private readonly promptManager: PromptManager,
     private readonly environmentDetector: EnvironmentDetector,
     private readonly logger: VscodeLogger,
+    private readonly documentWatcher: DocumentWatcher,
   ) {
-    // Create status bar items
-    this.globalPromptItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      PRIORITY,
-    );
-    this.projectPromptItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      PRIORITY,
-    );
+    this.initializeStatusBarItems();
+  }
 
-    // Set command
-    this.globalPromptItem.command = "oh-my-prompt.manageGlobalPrompts";
-    this.projectPromptItem.command = "oh-my-prompt.manageProjectPrompts";
-
-    // Initial setup
+  private async initializeStatusBarItems() {
+    this.globalPromptItem = await this.createStatusBarItem("global");
+    this.projectPromptItem = await this.createStatusBarItem("project");
     this.updateStatusBarItems();
   }
 
-  /**
-   * Update both status bar items
-   */
-  private async updateStatusBarItems() {
-    try {
-      // Update global prompt item
-      this.globalPromptItem.text = "$(globe) Global Prompt";
-      this.updateTooltip(this.globalPromptItem, "global");
-      this.globalPromptItem.show();
+  private async createStatusBarItem(
+    type: PromptType,
+  ): Promise<vscode.StatusBarItem> {
+    const item = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      PRIORITY,
+    );
 
-      // Update project prompt item
-      this.projectPromptItem.text = "$(file-directory) Project Prompt";
-      this.updateTooltip(this.projectPromptItem, "project");
-      this.projectPromptItem.show();
-    } catch (error) {
-      this.logger.error("Failed to update status bar items:", error);
-    }
+    item.name = `${type} Prompt`;
+    item.text = `$(symbol-keyword) ${type}`;
+    item.command =
+      type === "global"
+        ? "oh-my-prompt.manageGlobalPrompts"
+        : "oh-my-prompt.manageProjectPrompts";
+
+    // 监听规则文件变更
+    this.disposables.push(
+      this.documentWatcher.onDidChangeRules(
+        async ({ type: changedType, content }) => {
+          this.logger.info(`Received rules change event:`, {
+            itemType: type,
+            changedType,
+            hasContent: !!content,
+          });
+
+          if (type === changedType) {
+            try {
+              // 更新 tooltip
+              const markdown = new vscode.MarkdownString(
+                [content || "No content", "", "_Click to manage prompts_"].join(
+                  "\n",
+                ),
+              );
+              markdown.isTrusted = true;
+              markdown.supportHtml = true;
+              item.tooltip = markdown;
+
+              // 确保状态栏可见
+              item.show();
+
+              this.logger.info(`Updated status bar item for ${type}`);
+            } catch (error) {
+              this.logger.error(
+                `Failed to update status bar item for ${type}:`,
+                error,
+              );
+            }
+          }
+        },
+      ),
+    );
+
+    // 初始化 tooltip
+    const tooltip = await this.updateTooltip(type);
+    item.tooltip = tooltip;
+    item.show();
+
+    return item;
   }
 
   /**
    * Update tooltip with IDE prompt content
    */
-  private async updateTooltip(item: vscode.StatusBarItem, type: PromptType) {
+  private async updateTooltip(
+    type: PromptType,
+  ): Promise<vscode.MarkdownString> {
     try {
       const workspaceRoot =
         type === "project"
@@ -79,23 +116,40 @@ export class StatusBarItems {
         type,
         workspaceRoot,
       );
-      let content: string;
 
+      let content: string;
       try {
         content = await fs.promises.readFile(rulesPath, "utf-8");
       } catch (error) {
-        content = "No prompt content";
+        this.logger.error(`Failed to read rules file: ${rulesPath}`, error);
+        content = "No content";
       }
 
       const tooltipLines = [content, "", "_Click to manage prompts_"];
-
       const markdown = new vscode.MarkdownString(tooltipLines.join("\n"));
       markdown.isTrusted = true;
       markdown.supportHtml = true;
-      item.tooltip = markdown;
+      return markdown;
     } catch (error) {
-      item.tooltip = `Failed to load ${type} prompt content`;
-      this.logger.error(`Failed to update ${type} prompt tooltip:`, error);
+      this.logger.error("Failed to update tooltip:", error);
+      const markdown = new vscode.MarkdownString(
+        "Failed to load prompt content. Click to manage prompts.",
+      );
+      markdown.isTrusted = true;
+      markdown.supportHtml = true;
+      return markdown;
+    }
+  }
+
+  /**
+   * Update both status bar items
+   */
+  private updateStatusBarItems() {
+    try {
+      this.globalPromptItem.show();
+      this.projectPromptItem.show();
+    } catch (error) {
+      this.logger.error("Failed to update status bar items:", error);
     }
   }
 
@@ -105,6 +159,7 @@ export class StatusBarItems {
   async showPromptQuickPick(type: PromptType) {
     try {
       const promptResults = await this.promptManager.loadPrompts(type);
+
       // Define a custom type for prompt items
       type PromptQuickPickItem = vscode.QuickPickItem & {
         prompt?: Prompt;
@@ -164,8 +219,6 @@ export class StatusBarItems {
         try {
           const button = event.button;
           const item = event.item as PromptQuickPickItem;
-
-          this.logger.info("triggered item: ", item);
 
           if (!item.path) {
             return;
@@ -288,11 +341,9 @@ export class StatusBarItems {
     );
   }
 
-  /**
-   * Dispose status bar items
-   */
   dispose() {
     this.globalPromptItem.dispose();
     this.projectPromptItem.dispose();
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 }

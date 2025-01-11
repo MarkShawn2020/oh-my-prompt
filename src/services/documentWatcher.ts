@@ -7,6 +7,7 @@
  */
 import * as TOML from "@iarna/toml";
 import { formatError } from "@oh-my-commit/shared";
+import * as fs from "fs";
 import * as path from "path";
 import { Service } from "typedi";
 import * as vscode from "vscode";
@@ -19,12 +20,23 @@ import { PromptManager } from "./promptManager";
 export class DocumentWatcher {
   private disposables: vscode.Disposable[] = [];
   private syncOperations = new Set<string>();
+  private fileChangeEmitter = new vscode.EventEmitter<{
+    type: PromptType;
+    content: string;
+  }>();
 
   constructor(
     private readonly promptManager: PromptManager,
     private readonly environmentDetector: EnvironmentDetector,
     private readonly logger: VscodeLogger,
   ) {}
+
+  /**
+   * Get the event emitter for file changes
+   */
+  get onDidChangeRules(): vscode.Event<{ type: PromptType; content: string }> {
+    return this.fileChangeEmitter.event;
+  }
 
   /**
    * Track a sync operation for a specific file
@@ -40,6 +52,22 @@ export class DocumentWatcher {
 
       // 执行操作
       await operation();
+
+      // 手动触发文件变更事件
+      const type = await this.getRulesType(filePath);
+      if (type) {
+        try {
+          const content = await fs.promises.readFile(filePath, "utf-8");
+          this.fileChangeEmitter.fire({ type, content });
+          this.logger.info(`Manually fired change event for: ${filePath}`);
+        } catch (error) {
+          this.logger.error(
+            `Failed to read file after sync: ${filePath}`,
+            error,
+          );
+          this.fileChangeEmitter.fire({ type, content: "" });
+        }
+      }
     } finally {
       // 完成后移除记录
       this.syncOperations.delete(filePath);
@@ -57,133 +85,74 @@ export class DocumentWatcher {
   /**
    * Start watching documents
    */
-  start() {
-    // Watch for document changes
+  async start() {
+    // 设置全局规则文件监听器
+    const globalRulesPath =
+      await this.environmentDetector.getRulesPath("global");
+    this.watchRulesFile(globalRulesPath, "global");
+
+    // 设置项目规则文件监听器
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (workspaceRoot) {
+      const projectRulesPath = await this.environmentDetector.getRulesPath(
+        "project",
+        workspaceRoot,
+      );
+      this.watchRulesFile(projectRulesPath, "project");
+    }
+
+    // 监听工作区变化
     this.disposables.push(
-      vscode.workspace.onDidChangeTextDocument(async (event) => {
-        try {
-          const document = event.document;
-          const filePath = document.uri.fsPath;
-
-          // 如果文件正在被同步，忽略这个事件
-          if (this.isSyncing(filePath)) {
-            this.logger.info(
-              `Ignoring change event for syncing file: ${filePath}`,
-            );
-            return;
-          }
-
-          // Check if this is a rules file
-          const type = await this.getRulesType(filePath);
-          if (!type) {
-            return;
-          }
-
-          this.logger.info(`Rules file changed: ${filePath}`);
-
-          // Get current prompts
-          const prompts = await this.promptManager.loadPrompts(type);
-          const content = document.getText();
-
-          // Find if we already have this content
-          const existingPrompt = prompts.find(
-            (p) => p.prompt.content === content,
+      vscode.workspace.onDidChangeWorkspaceFolders(async () => {
+        const newWorkspaceRoot =
+          vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (newWorkspaceRoot) {
+          const projectRulesPath = await this.environmentDetector.getRulesPath(
+            "project",
+            newWorkspaceRoot,
           );
-
-          if (!existingPrompt) {
-            const answer = await vscode.window.showInformationMessage(
-              `Do you want to save the current ${type} rules as a new prompt?`,
-              "Save",
-              "Ignore",
-            );
-
-            if (answer === "Save") {
-              const prompt =
-                await this.promptManager.importFromIdeRulesUnsaved(type);
-              if (prompt) {
-                await this.promptManager.savePrompt(prompt);
-                vscode.window.showInformationMessage(
-                  "Rules saved as new prompt successfully",
-                );
-              }
-            }
-          }
-        } catch (error) {
-          this.logger.error("Failed to handle document change:", error);
+          this.watchRulesFile(projectRulesPath, "project");
         }
       }),
     );
+  }
 
-    // Watch for document saves
+  /**
+   * Watch a rules file for changes
+   */
+  private watchRulesFile(rulesPath: string, type: PromptType) {
+    const watcher = vscode.workspace.createFileSystemWatcher(
+      rulesPath,
+      false,
+      false,
+      false,
+    );
+
+    const handleFileChange = async () => {
+      if (this.isSyncing(rulesPath)) {
+        this.logger.info(
+          `Ignoring change event for syncing file: ${rulesPath}`,
+        );
+        return;
+      }
+
+      this.logger.info(`Detected change in rules file: ${rulesPath}`);
+
+      try {
+        const content = await fs.promises.readFile(rulesPath, "utf-8");
+        this.fileChangeEmitter.fire({ type, content });
+      } catch (error) {
+        this.logger.error(`Failed to read rules file: ${rulesPath}`, error);
+        this.fileChangeEmitter.fire({ type, content: "" });
+      }
+    };
+
     this.disposables.push(
-      vscode.workspace.onDidSaveTextDocument(async (document) => {
-        try {
-          const filePath = document.uri.fsPath;
-          const promptDir = this.promptManager.getPromptDir();
-          const relativePath = path.relative(promptDir, filePath);
-          const type = relativePath.split(path.sep)[0] as PromptType;
-
-          // Skip temp files
-          if (relativePath.startsWith(".temp")) {
-            return;
-          }
-
-          // Handle prompt file save
-          if (filePath.startsWith(promptDir) && filePath.endsWith(".toml")) {
-            await this.trackSyncOperation(filePath, async () => {
-              // Parse the TOML content
-              const documentContent = document.getText();
-              let parsedContent: any;
-              try {
-                parsedContent = TOML.parse(documentContent);
-              } catch (error) {
-                throw new Error(`Invalid TOML format: ${formatError(error)}`);
-              }
-
-              // Validate with Zod schema
-              this.logger.info("omp prompt: ", {
-                documentContent,
-                parsedContent,
-              });
-              const validationResult = PromptSchema.safeParse(parsedContent);
-              this.logger.info({ validationResult });
-              if (!validationResult.success) {
-                const errors = validationResult.error.errors
-                  .map((err) => `${err.path.join(".")}: ${err.message}`)
-                  .join("\n");
-                throw new Error(`Invalid prompt format:\n${errors}`);
-              }
-
-              const prompt = {
-                meta: {
-                  ...validationResult.data.meta,
-                  type, // Override type from file path
-                },
-                content: validationResult.data.content,
-              };
-
-              if (type === "global") {
-                await this.promptManager.syncGlobalPrompt(prompt);
-              } else {
-                const workspaceRoot =
-                  vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                if (!workspaceRoot) {
-                  throw new Error("Workspace root not found");
-                }
-                await this.promptManager.syncProjectPrompt(
-                  prompt,
-                  workspaceRoot,
-                );
-              }
-
-              vscode.window.showInformationMessage(
-                `Successfully applied changes to ${type} rules`,
-              );
-            });
-          }
-        } catch (error) {
-          this.logger.error("Failed to handle document save:", error);
-        }
+      watcher,
+      watcher.onDidChange(handleFileChange),
+      watcher.onDidCreate(handleFileChange),
+      watcher.onDidDelete(() => {
+        this.fileChangeEmitter.fire({ type, content: "" });
       }),
     );
   }
@@ -219,5 +188,6 @@ export class DocumentWatcher {
 
   dispose() {
     this.disposables.forEach((d) => d.dispose());
+    this.fileChangeEmitter.dispose();
   }
 }
