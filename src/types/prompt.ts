@@ -19,6 +19,7 @@ export const PromptMetaSchema = z.object({
   date: z.string().default(() => new Date().toISOString()),
   license: z.string().default("MIT"),
 });
+export type PromptMeta = z.infer<typeof PromptMetaSchema>;
 
 export const PromptSchema = z.object({
   meta: PromptMetaSchema,

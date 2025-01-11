@@ -9,12 +9,15 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as TOML from "@iarna/toml";
+import { v4 as uuidv4 } from "uuid";
+import git from "simple-git";
 
-import { Prompt, PromptType } from "../types/prompt";
+import { Prompt, PromptMeta, PromptType } from "../types/prompt";
 import { Service } from "typedi";
 import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
 import { formatError } from "@oh-my-commit/shared";
+import { DocumentWatcher } from "../document-watcher"; // Add this line
 
 @Service()
 export class PromptManager {
@@ -22,11 +25,14 @@ export class PromptManager {
   private fileWatchers: Map<string, vscode.FileSystemWatcher> = new Map();
   private extensionContext?: vscode.ExtensionContext;
   private pendingImportItem?: vscode.StatusBarItem;
+  private documentWatcher: DocumentWatcher; // Add this line
 
   constructor(
     public environmentDetector: EnvironmentDetector,
     private logger: VscodeLogger,
+    documentWatcher: DocumentWatcher, // Add this line
   ) {
+    this.documentWatcher = documentWatcher; // Add this line
     this.ensurePromptDirectories();
   }
 
@@ -138,7 +144,12 @@ export class PromptManager {
     }
   }
 
-  async loadPrompts(type: PromptType): Promise<Prompt[]> {
+  /**
+   * Load all prompts of a specific type
+   */
+  async loadPrompts(
+    type: PromptType,
+  ): Promise<Array<{ prompt: Prompt; path: string }>> {
     const promptDir = path.join(this.getPromptDir(), type);
     try {
       const files = await fs.readdir(promptDir);
@@ -146,48 +157,56 @@ export class PromptManager {
         files
           .filter((file) => file.endsWith(".toml"))
           .map(async (file) => {
-            const content = await fs.readFile(
-              path.join(promptDir, file),
-              "utf-8",
-            );
+            const filePath = path.join(promptDir, file);
+            try {
+              const content = await fs.readFile(filePath, "utf-8");
 
-            // Parse TOML sections
-            const sections = content.split("\n\n");
-            const metaSection = sections[0];
-            const contentSection = sections[1];
+              // Parse TOML sections
+              const sections = content.split("\n\n");
+              const metaSection = sections[0];
+              const contentSection = sections[1];
 
-            // Parse meta section
-            const meta: Record<string, string> = {};
-            metaSection
-              .split("\n")
-              .slice(1) // Skip [meta] line
-              .forEach((line) => {
-                const [key, value] = line.split(" = ");
-                meta[key.trim()] = value.trim().replace(/"/g, "");
-              });
+              // Parse meta section
+              const meta: Record<string, string> = {};
+              metaSection
+                .split("\n")
+                .slice(1) // Skip [meta] line
+                .forEach((line) => {
+                  const [key, value] = line.split(" = ");
+                  meta[key.trim()] = value.trim().replace(/"/g, "");
+                });
 
-            // Parse content section
-            const contentMatch = contentSection.match(
-              /content = """\n([\s\S]*)\n"""/,
-            );
-            const promptContent = contentMatch ? contentMatch[1] : "";
+              // Parse content section
+              const contentMatch = contentSection.match(
+                /content = """\n([\s\S]*)\n"""/,
+              );
+              const promptContent = contentMatch ? contentMatch[1] : "";
 
-            return {
-              meta: {
-                type: meta.type as PromptType,
-                id: meta.id,
-                name: meta.name,
-                description: meta.description,
-                author: meta.author,
-                version: meta.version,
-                date: meta.date,
-                license: meta.license,
-              },
-              content: promptContent,
-            } as Prompt;
+              const prompt = {
+                meta: {
+                  type: meta.type as PromptType,
+                  id: meta.id,
+                  name: meta.name,
+                  description: meta.description,
+                  author: meta.author,
+                  version: meta.version,
+                  date: meta.date,
+                  license: meta.license,
+                },
+                content: promptContent,
+              } as Prompt;
+
+              return { prompt, path: filePath };
+            } catch (error) {
+              this.logger.error(
+                `Failed to parse prompt file ${filePath}:`,
+                error,
+              );
+              return { prompt: null, path: filePath };
+            }
           }),
       );
-      return prompts;
+      return prompts.filter((item) => item.prompt !== null);
     } catch (error) {
       this.logger.error(`Failed to load ${type} prompts:`, error);
       return [];
@@ -195,44 +214,14 @@ export class PromptManager {
   }
 
   /**
-   * Save prompt to permanent storage
+   * Delete a prompt file by path
    */
-  public async savePrompt(prompt: Prompt): Promise<void> {
-    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
-    await fs.mkdir(promptDir, { recursive: true });
-    const filePath = path.join(promptDir, `${prompt.meta.id}.toml`);
-    const tempPath = path.join(
-      this.getPromptDir(),
-      ".temp",
-      `${prompt.meta.id}.toml`,
-    );
-
+  async deletePromptFile(filePath: string): Promise<void> {
     try {
-      // If temp file exists, move it to the target location
-      if (await this.fileExists(tempPath)) {
-        await fs.rename(tempPath, filePath);
-      } else {
-        // If no temp file, write directly
-        await this.writePromptToFile(prompt, filePath);
-      }
+      await fs.unlink(filePath);
+      this.logger.info(`Deleted prompt file: ${filePath}`);
     } catch (error) {
-      this.logger.error("Failed to save prompt:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a prompt from the store
-   */
-  async deletePrompt(prompt: Prompt): Promise<void> {
-    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
-    const filepath = path.join(promptDir, `${prompt.meta.id}.toml`);
-
-    try {
-      await fs.unlink(filepath);
-      this.logger.info(`Deleted prompt: ${prompt.meta.name}`);
-    } catch (error) {
-      this.logger.error("Failed to delete prompt:", error);
+      this.logger.error("Failed to delete prompt file:", error);
       throw error;
     }
   }
@@ -240,56 +229,44 @@ export class PromptManager {
   /**
    * Create a new empty prompt
    */
-  async createPrompt(type: PromptType): Promise<Prompt> {
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "")
-      .replace(/[TZ]/g, "_")
-      .slice(0, -4);
-
-    const prompt: Prompt = {
-      meta: {
-        type,
-        id: timestamp,
-        name: "New Prompt",
-        description: "No description yet",
-        author: "User",
-        version: "0.0.1",
-        date: new Date().toISOString(),
-        license: "MIT",
-      },
-      content: `
-# Enter your prompt content here...`,
-    };
-
-    await this.savePrompt(prompt);
+  public async createPrompt(type: PromptType): Promise<Prompt> {
+    const prompt = await this.createPromptUnsaved(type);
+    const promptDir = path.join(this.getPromptDir(), type);
+    await fs.mkdir(promptDir, { recursive: true });
+    const filePath = path.join(promptDir, `${prompt.meta.id}.toml`);
+    await this.writePromptToFile(prompt, filePath);
     return prompt;
   }
 
   /**
    * Create a new empty prompt without saving
    */
-  async createPromptUnsaved(type: PromptType): Promise<Prompt> {
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "")
-      .replace(/[TZ]/g, "_")
-      .slice(0, -4);
+  private async createPromptUnsaved(type: PromptType): Promise<Prompt> {
+    const meta: PromptMeta = {
+      id: uuidv4(),
+      type,
+      name: "New Prompt",
+      description: "",
+      version: "0.1.0",
+      author: "User",
+      date: new Date().toISOString(),
+      license: "MIT",
+    };
 
     return {
-      meta: {
-        type,
-        id: timestamp,
-        name: "New Prompt",
-        description: "No description yet",
-        author: "User",
-        version: "0.0.1",
-        date: new Date().toISOString(),
-        license: "MIT",
-      },
-      content: `
-# Enter your prompt content here...`,
+      meta,
+      content: "",
     };
+  }
+
+  /**
+   * Save prompt content to file
+   */
+  public async savePrompt(prompt: Prompt): Promise<void> {
+    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
+    await fs.mkdir(promptDir, { recursive: true });
+    const filePath = path.join(promptDir, `${prompt.meta.id}.toml`);
+    await this.writePromptToFile(prompt, filePath);
   }
 
   /**
@@ -309,14 +286,19 @@ export class PromptManager {
   }
 
   /**
-   * Write prompt content to a temporary file and return the file path
+   * Delete a prompt from the store
    */
-  public async writePromptToTemp(prompt: Prompt): Promise<string> {
-    const tempDir = path.join(this.getPromptDir(), ".temp");
-    await fs.mkdir(tempDir, { recursive: true });
-    const tempPath = path.join(tempDir, `${prompt.meta.id}.toml`);
-    await this.writePromptToFile(prompt, tempPath);
-    return tempPath;
+  async deletePrompt(prompt: Prompt): Promise<void> {
+    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
+    const filepath = path.join(promptDir, `${prompt.meta.id}.toml`);
+
+    try {
+      await fs.unlink(filepath);
+      this.logger.info(`Deleted prompt: ${prompt.meta.name}`);
+    } catch (error) {
+      this.logger.error("Failed to delete prompt:", error);
+      throw error;
+    }
   }
 
   /**
@@ -394,14 +376,25 @@ export class PromptManager {
    */
   async syncGlobalPrompt(prompt: Prompt): Promise<void> {
     if (prompt.meta.type !== "global") {
-      throw new Error("Can only sync global prompts to global rules");
+      throw new Error("Can only sync global prompts");
     }
 
-    const ide = await this.environmentDetector.detect();
-    const targetPath = await this.environmentDetector.getRulesPath("global");
+    // Get the IDE rules file path
+    const ideRulesPath = await this.environmentDetector.getRulesPath("global");
+    if (!ideRulesPath) {
+      throw new Error("No IDE rules file found");
+    }
 
-    this.logger.info(`Syncing global prompt to ${targetPath} (IDE: ${ide})`);
-    await fs.writeFile(targetPath, prompt.content);
+    try {
+      await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
+      this.documentWatcher.markSynced(ideRulesPath);
+      this.logger.info(
+        `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
+      );
+    } catch (error) {
+      this.logger.error("Failed to sync prompt to IDE rules:", error);
+      throw error;
+    }
   }
 
   /**
@@ -412,17 +405,28 @@ export class PromptManager {
     workspaceRoot: string,
   ): Promise<void> {
     if (prompt.meta.type !== "project") {
-      throw new Error("Can only sync project prompts to project rules");
+      throw new Error("Can only sync project prompts");
     }
 
-    const ide = await this.environmentDetector.detect();
-    const targetPath = await this.environmentDetector.getRulesPath(
+    // Get the IDE rules file path
+    const ideRulesPath = await this.environmentDetector.getRulesPath(
       "project",
       workspaceRoot,
     );
+    if (!ideRulesPath) {
+      throw new Error("No IDE rules file found");
+    }
 
-    this.logger.info(`Syncing project prompt to ${targetPath} (IDE: ${ide})`);
-    await fs.writeFile(targetPath, prompt.content);
+    try {
+      await fs.writeFile(ideRulesPath, prompt.content, "utf-8");
+      this.documentWatcher.markSynced(ideRulesPath);
+      this.logger.info(
+        `Synced prompt "${prompt.meta.name}" to IDE rules file: ${ideRulesPath}`,
+      );
+    } catch (error) {
+      this.logger.error("Failed to sync prompt to IDE rules:", error);
+      throw error;
+    }
   }
 
   /**
@@ -466,7 +470,9 @@ export class PromptManager {
               const ide = await this.environmentDetector.detect();
               const content = await fs.readFile(rulesPath, "utf-8");
               const prompts = await this.loadPrompts(type);
-              const currentPrompt = prompts.find((p) => p.content === content);
+              const currentPrompt = prompts.find(
+                (p) => p.prompt.content === content,
+              );
 
               if (!currentPrompt) {
                 const answer = await vscode.window.showInformationMessage(
@@ -513,28 +519,6 @@ export class PromptManager {
       }
     } catch (error) {
       this.logger.error(`Failed to setup rule watchers:`, error);
-    }
-  }
-
-  /**
-   * Clean up temporary prompt files
-   * @param promptId Optional prompt ID to clean up specific temp file
-   */
-  public async cleanupTempPrompts(promptId?: string) {
-    const tempDir = path.join(this.getPromptDir(), ".temp");
-    try {
-      if (promptId) {
-        // Delete specific temp file
-        const tempPath = path.join(tempDir, `${promptId}.toml`);
-        if (await this.fileExists(tempPath)) {
-          await fs.unlink(tempPath);
-        }
-      } else {
-        // Delete entire temp directory
-        await fs.rm(tempDir, { recursive: true, force: true });
-      }
-    } catch (error) {
-      this.logger.error("Failed to cleanup temp prompts:", error);
     }
   }
 

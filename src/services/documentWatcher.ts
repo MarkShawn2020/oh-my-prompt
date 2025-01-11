@@ -18,15 +18,57 @@ import { PromptManager } from "./promptManager";
 @Service()
 export class DocumentWatcher {
   private disposables: vscode.Disposable[] = [];
+  private logger: VscodeLogger;
+  // 记录最近同步的文件路径
+  private recentlySyncedFiles = new Set<string>();
+  private syncLock = false;
+  private syncTimeout: NodeJS.Timeout | null = null;
 
   constructor(
-    private environmentDetector: EnvironmentDetector,
-    private promptManager: PromptManager,
-    private logger: VscodeLogger,
-  ) {}
+    private readonly promptManager: PromptManager,
+    private readonly environmentDetector: EnvironmentDetector,
+  ) {
+    this.logger = new VscodeLogger("DocumentWatcher");
+  }
 
   /**
-   * Start watching for document changes
+   * Lock sync operations to prevent circular updates
+   */
+  async acquireSyncLock(): Promise<void> {
+    this.syncLock = true;
+    // 自动释放锁，以防止死锁
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout);
+    }
+    this.syncTimeout = setTimeout(() => {
+      this.releaseSyncLock();
+    }, 1000); // 1秒后自动释放锁
+  }
+
+  /**
+   * Release sync lock
+   */
+  releaseSyncLock(): void {
+    this.syncLock = false;
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout);
+      this.syncTimeout = null;
+    }
+  }
+
+  /**
+   * Mark a file as recently synced
+   */
+  markSynced(filePath: string) {
+    this.recentlySyncedFiles.add(filePath);
+    // 5秒后自动清除标记
+    setTimeout(() => {
+      this.recentlySyncedFiles.delete(filePath);
+    }, 5000);
+  }
+
+  /**
+   * Start watching documents
    */
   start() {
     if (this.disposables.length > 0) {
@@ -36,38 +78,118 @@ export class DocumentWatcher {
     // Watch for document saves
     const saveDisposable = vscode.workspace.onDidSaveTextDocument(
       async (document) => {
-        const filePath = document.uri.fsPath;
-        const promptDir = this.promptManager.getPromptDir();
-
-        // Check if this is an IDE rules file (global or project)
-        const globalRulesPath =
-          await this.environmentDetector.getRulesPath("global");
-        const workspaceRoot =
-          vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const projectRulesPath = workspaceRoot
-          ? await this.environmentDetector.getRulesPath(
-              "project",
-              workspaceRoot,
-            )
-          : undefined;
-
-        const normalizedPath = path.normalize(filePath);
-        const isIdeRule = [globalRulesPath, projectRulesPath]
-          .filter(Boolean)
-          .map((p) => path.normalize(p!))
-          .includes(normalizedPath);
-
-        if (isIdeRule) {
-          this.handleIdePromptSave(document);
+        if (this.syncLock) {
+          this.logger.info("Sync locked, skipping document save event");
           return;
         }
 
-        // Handle prompt file save
-        if (filePath.startsWith(promptDir) && filePath.endsWith(".toml")) {
-          this.handleOmpPromptSave(document);
-          return;
+        try {
+          const filePath = document.uri.fsPath;
+          const promptDir = this.promptManager.getPromptDir();
+
+          // Check if this is an IDE rules file (global or project)
+          const globalRulesPath =
+            await this.environmentDetector.getRulesPath("global");
+          const workspaceRoot =
+            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          const projectRulesPath = workspaceRoot
+            ? await this.environmentDetector.getRulesPath(
+                "project",
+                workspaceRoot,
+              )
+            : undefined;
+
+          const normalizedPath = path.normalize(filePath);
+          const isIdeRule = [globalRulesPath, projectRulesPath]
+            .filter(Boolean)
+            .map((p) => path.normalize(p!))
+            .includes(normalizedPath);
+
+          if (isIdeRule) {
+            await this.acquireSyncLock();
+            this.handleIdePromptSave(document);
+            this.releaseSyncLock();
+            return;
+          }
+
+          // Handle prompt file save
+          if (filePath.startsWith(promptDir) && filePath.endsWith(".toml")) {
+            await this.acquireSyncLock();
+            this.handleOmpPromptSave(document);
+            this.releaseSyncLock();
+            return;
+          }
+        } catch (error) {
+          this.logger.error("Failed to handle document save:", error);
         }
       },
+    );
+
+    // Watch for document changes
+    this.disposables.push(
+      vscode.workspace.onDidChangeTextDocument(async (event) => {
+        try {
+          const document = event.document;
+          const filePath = document.uri.fsPath;
+
+          // Skip if file was recently synced
+          if (this.recentlySyncedFiles.has(filePath)) {
+            return;
+          }
+
+          // Check if this is a rules file
+          const type = await this.getRulesType(filePath);
+          if (!type) {
+            return;
+          }
+
+          // Only handle manual edits in the editor
+          if (
+            event.reason !== vscode.TextDocumentChangeReason.Undo &&
+            event.reason !== vscode.TextDocumentChangeReason.Redo &&
+            !event.contentChanges.some((change) => change.text !== "")
+          ) {
+            return;
+          }
+
+          this.logger.info(`Rules file changed by user: ${filePath}`);
+
+          // Get current prompts
+          const prompts = await this.promptManager.loadPrompts(type);
+          const content = document.getText();
+
+          // Skip if content is synced from prompt list
+          if (content.startsWith("<!-- synced from prompt:")) {
+            return;
+          }
+
+          // Find if we already have this content
+          const existingPrompt = prompts.find(
+            (p) => p.prompt.content === content,
+          );
+
+          if (!existingPrompt) {
+            const answer = await vscode.window.showInformationMessage(
+              `Do you want to save the current ${type} rules as a new prompt?`,
+              "Save",
+              "Ignore",
+            );
+
+            if (answer === "Save") {
+              const prompt =
+                await this.promptManager.importFromIdeRulesUnsaved(type);
+              if (prompt) {
+                await this.promptManager.savePrompt(prompt);
+                vscode.window.showInformationMessage(
+                  "Rules saved as new prompt successfully",
+                );
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.error("Failed to handle document change:", error);
+        }
+      }),
     );
 
     this.disposables.push(saveDisposable);
@@ -204,5 +326,26 @@ export class DocumentWatcher {
 
   dispose() {
     this.disposables.forEach((d) => d.dispose());
+  }
+
+  private async getRulesType(filePath: string): Promise<PromptType | null> {
+    const globalRulesPath =
+      await this.environmentDetector.getRulesPath("global");
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const projectRulesPath = workspaceRoot
+      ? await this.environmentDetector.getRulesPath("project", workspaceRoot)
+      : undefined;
+
+    const normalizedPath = path.normalize(filePath);
+    if (path.normalize(globalRulesPath) === normalizedPath) {
+      return "global";
+    } else if (
+      projectRulesPath &&
+      path.normalize(projectRulesPath) === normalizedPath
+    ) {
+      return "project";
+    } else {
+      return null;
+    }
   }
 }

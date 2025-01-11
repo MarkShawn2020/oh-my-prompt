@@ -25,13 +25,13 @@ export function activate(context: vscode.ExtensionContext) {
   documentWatcher.start();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("oh-my-prompt.selectGlobalPrompt", () => {
+    vscode.commands.registerCommand("oh-my-prompt.manageGlobalPrompts", () => {
       statusBarItems.showPromptQuickPick("global");
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("oh-my-prompt.selectProjectPrompt", () => {
+    vscode.commands.registerCommand("oh-my-prompt.manageProjectPrompts", () => {
       statusBarItems.showPromptQuickPick("project");
     }),
   );

@@ -16,12 +16,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "oh-my-prompt.selectGlobalPrompt",
-        "title": "Oh My Prompt: Select Global Prompt"
+        "command": "oh-my-prompt.manageGlobalPrompts",
+        "title": "Oh My Prompt: Manage Global Prompts"
       },
       {
-        "command": "oh-my-prompt.selectProjectPrompt",
-        "title": "Oh My Prompt: Select Project Prompt"
+        "command": "oh-my-prompt.manageProjectPrompts",
+        "title": "Oh My Prompt: Manage Project Prompts"
       }
     ]
   },
@@ -40,6 +40,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/prettyjson": "^0.0.33",
+    "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.86.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
@@ -70,7 +71,9 @@
     "inversify": "^6.0.1",
     "prettyjson": "^1.2.5",
     "reflect-metadata": "^0.2.2",
+    "simple-git": "^3.27.0",
     "typedi": "^0.10.0",
+    "uuid": "^11.0.5",
     "zod": "^3.24.1"
   }
 }

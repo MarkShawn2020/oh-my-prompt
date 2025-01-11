@@ -86,6 +86,99 @@ src/
    QuickPick → Load Prompts → User Selection → Apply Rules
    ```
 
+## IDE Rules File Synchronization
+
+### Problem
+
+When synchronizing prompts between the prompt list and IDE rules files, we need to prevent circular updates:
+
+1. When a prompt is synced from prompt list to IDE rules file, it triggers a file change event
+2. The file watcher detects this change and tries to save it back as a new prompt
+3. This could lead to unnecessary prompts or infinite loops
+
+### Solution Comparison
+
+We explored several solutions:
+
+1. **Special Marker in Content**
+   - Add a special comment to mark synced content
+   - Pros: Simple to implement, self-documenting
+   - Cons: Modifies prompt content which should be preserved exactly
+
+2. **Memory-based Flag**
+   - Keep track of recently synced files in memory
+   - Pros: No content modification, simple implementation
+   - Cons: State management, timing issues with file system events
+
+3. **VSCode Change Event Source**
+   - Use `event.reason` to detect manual changes
+   - Pros: Uses built-in VSCode API, no state management
+   - Cons: Not all file changes have clear reasons
+
+4. **Lock Mechanism** 
+   - Use a lock during sync operations
+   - Pros:
+     - Clear and reliable synchronization control
+     - No content modification
+     - Works with any file change source
+   - Cons:
+     - Need proper lock management
+     - Need timeout mechanism to prevent deadlocks
+
+### Implementation Details
+
+The lock mechanism is implemented in `DocumentWatcher`:
+
+```typescript
+@Service()
+export class DocumentWatcher {
+  private syncLock = false;
+  private syncTimeout: NodeJS.Timeout | null = null;
+
+  async acquireSyncLock(): Promise<void> {
+    this.syncLock = true;
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout);
+    }
+    this.syncTimeout = setTimeout(() => {
+      this.releaseSyncLock();
+    }, 1000); // Auto-release after 1s
+  }
+
+  releaseSyncLock(): void {
+    this.syncLock = false;
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout);
+      this.syncTimeout = null;
+    }
+  }
+}
+```
+
+Usage in file operations:
+
+```typescript
+// When syncing from prompt list to IDE
+try {
+  await this.documentWatcher.acquireSyncLock();
+  await fs.writeFile(ideRulesPath, prompt.content);
+} finally {
+  this.documentWatcher.releaseSyncLock();
+}
+
+// In file watcher
+if (this.syncLock) {
+  return; // Skip processing during sync
+}
+```
+
+### Best Practices
+
+1. Always use try-finally to ensure lock release
+2. Keep lock duration short
+3. Include auto-release timeout as safety net
+4. Log lock acquisition and release for debugging
+
 ## Future Considerations
 
 1. **Extensibility**
