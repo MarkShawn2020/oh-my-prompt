@@ -197,7 +197,7 @@ export class StatusBarItems {
           return {
             label: prompt!.meta.name,
             description: prompt!.meta.description,
-            detail: `Version: ${prompt!.meta.version} | Author: ${prompt!.meta.author} | Date: ${prompt!.meta.date}`,
+            detail: prompt?.content, // `Version: ${prompt!.meta.version} | Author: ${prompt!.meta.author} | Date: ${prompt!.meta.date}`,
             buttons: [
               {
                 iconPath: new vscode.ThemeIcon("edit"),
