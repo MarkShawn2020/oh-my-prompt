@@ -66,32 +66,32 @@ prompt3
 
 1. 状态栏功能
    - [ ] 在状态栏显示产品 Logo
-   - [ ] 显示当前激活的 Global Prompt 名称（使用特定颜色标识）
-   - [ ] 显示当前激活的 Workspace Prompt 名称（使用特定颜色标识）
-   - [ ] 点击状态栏项目时显示 Quick Pick 菜单
+   - [x] 显示当前激活的 Global Prompt 名称（使用特定颜色标识）
+   - [x] 显示当前激活的 Workspace Prompt 名称（使用特定颜色标识）
+   - [x] 点击状态栏项目时显示 Quick Pick 菜单
 
 2. Prompt 管理
-   - [ ] 自动扫描并加载 `~/.oh-my-prompt/prompts/{type}` 下的所有 TOML 格式 prompt
-   - [ ] 自动检测并加载项目中已存在的 `.windsurfrules` 或 `.cursorrules`
-   - [ ] 支持通过 Quick Pick 菜单切换不同的 prompt
-   - [ ] 提供编辑当前 prompt 的快捷入口
-   - [ ] 支持在编辑器中直接修改 prompt 文件
+   - [x] 自动扫描并加载 `~/.oh-my-prompt/prompts/{type}` 下的所有 TOML 格式 prompt
+   - [x] 自动检测并加载项目中已存在的 `.windsurfrules` 或 `.cursorrules`
+   - [x] 支持通过 Quick Pick 菜单切换不同的 prompt
+   - [x] 提供编辑当前 prompt 的快捷入口
+   - [x] 支持在编辑器中直接修改 prompt 文件
 
 3. 配置同步
-   - [ ] 支持将选中的 Global Prompt 同步到 Windsurf (`~/.codeium/windsurf/memories/global_rules.md`)
+   - [x] 支持将选中的 Global Prompt 同步到 Windsurf (`~/.codeium/windsurf/memories/global_rules.md`)
    - [ ] 支持将选中的 Global Prompt 同步到 Cursor settings
-   - [ ] 支持将选中的 Project Prompt 同步到 `.windsurfrules`
+   - [x] 支持将选中的 Project Prompt 同步到 `.windsurfrules`
    - [ ] 支持将选中的 Project Prompt 同步到 `.cursorrules`
 
 4. Prompt 文件管理
-   - [ ] 支持 TOML 格式的 prompt 文件，包含 meta 信息和 content
-   - [ ] 提供 post-save hook 进行格式检查
-   - [ ] 提供手动触发配置同步的命令
+   - [x] 支持 TOML 格式的 prompt 文件，包含 meta 信息和 content
+   - [x] 提供 post-save hook 进行格式检查
+   - [x] [DEPRECATED] 提供手动触发配置同步的命令
 
 5. 用户体验
-   - [ ] 提供清晰的错误提示
+   - [x] 提供清晰的错误提示
    - [ ] 支持快捷键操作
-   - [ ] 状态栏图标根据同步状态显示不同状态
+   - [x] [DEPRECATED] 状态栏图标根据同步状态显示不同状态
 
 6. 开发者友好
    - [ ] 提供详细的文档说明
@@ -99,5 +99,9 @@ prompt3
    - [ ] 提供示例 prompt 模板
 
 ### v2.0
+
+> - CreatedAt: 2025-01-12 03:48:03
+
+
 
 ### v3.0
