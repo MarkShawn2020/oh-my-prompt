@@ -149,11 +149,11 @@ export class PromptManager {
    */
   async loadPrompts(
     type: PromptType,
-  ): Promise<Array<{ prompt: Prompt; path: string }>> {
+  ): Promise<Array<{ prompt: Prompt | null; path: string; error?: string }>> {
     const promptDir = path.join(this.getPromptDir(), type);
     try {
       const files = await fs.readdir(promptDir);
-      const prompts = await Promise.all(
+      return await Promise.all(
         files
           .filter((file) => file.endsWith(".toml"))
           .map(async (file) => {
@@ -163,17 +163,21 @@ export class PromptManager {
               return {
                 path: filePath,
                 prompt: PromptSchema.parse(TOML.parse(content)),
+                error: undefined,
               };
             } catch (error) {
               this.logger.error(
                 `Failed to parse prompt file ${filePath}:`,
                 error,
               );
-              return { prompt: null, path: filePath };
+              return {
+                prompt: null,
+                path: filePath,
+                error: error instanceof Error ? error.message : "Unknown error",
+              };
             }
           }),
       );
-      return prompts.filter((item) => item.prompt !== null);
     } catch (error) {
       this.logger.error(`Failed to load ${type} prompts:`, error);
       return [];
@@ -428,7 +432,7 @@ export class PromptManager {
               const content = await fs.readFile(rulesPath, "utf-8");
               const prompts = await this.loadPrompts(type);
               const currentPrompt = prompts.find(
-                (p) => p.prompt.content === content,
+                (p) => p.prompt?.content === content,
               );
 
               if (!currentPrompt) {

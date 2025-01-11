@@ -162,31 +162,60 @@ export class StatusBarItems {
 
       // Define a custom type for prompt items
       type PromptQuickPickItem = vscode.QuickPickItem & {
-        prompt?: Prompt;
+        prompt?: Prompt | null;
         path?: string;
+        error?: string;
       };
 
       const items: PromptQuickPickItem[] = promptResults.map(
-        ({ prompt, path }) => ({
-          label: prompt.meta.name,
-          description: prompt.meta.description,
-          detail: `Version: ${prompt.meta.version} | Author: ${prompt.meta.author} | Date: ${prompt.meta.date}`,
-          buttons: [
-            {
-              iconPath: new vscode.ThemeIcon("edit"),
-              tooltip: "Edit TOML file",
-            },
-            {
-              iconPath: new vscode.ThemeIcon("trash"),
-              tooltip: "Delete prompt",
-            },
-          ],
-          prompt,
-          path,
-        }),
+        ({ prompt, path, error }) => {
+          if (error) {
+            return {
+              label: `$(error) ${path.split("/").pop()}`,
+              description: "Error loading prompt",
+              detail: `Error: ${error}`,
+              buttons: [
+                {
+                  iconPath: new vscode.ThemeIcon("edit"),
+                  tooltip: "Edit TOML file",
+                },
+                {
+                  iconPath: new vscode.ThemeIcon("trash"),
+                  tooltip: "Delete prompt",
+                },
+              ],
+              prompt: null,
+              path,
+              error,
+              decorations: {
+                tooltip: error,
+                colors: {
+                  foreground: new vscode.ThemeColor("errorForeground"),
+                  background: new vscode.ThemeColor("errorBackground"),
+                },
+              },
+            };
+          }
+          return {
+            label: prompt!.meta.name,
+            description: prompt!.meta.description,
+            detail: `Version: ${prompt!.meta.version} | Author: ${prompt!.meta.author} | Date: ${prompt!.meta.date}`,
+            buttons: [
+              {
+                iconPath: new vscode.ThemeIcon("edit"),
+                tooltip: "Edit TOML file",
+              },
+              {
+                iconPath: new vscode.ThemeIcon("trash"),
+                tooltip: "Delete prompt",
+              },
+            ],
+            prompt,
+            path,
+          };
+        },
       );
 
-      const quickPick = vscode.window.createQuickPick<PromptQuickPickItem>();
       const defaultItems: PromptQuickPickItem[] = [
         {
           label: "$(edit) Edit Current",
@@ -209,6 +238,7 @@ export class StatusBarItems {
         { kind: vscode.QuickPickItemKind.Separator, label: "Prompts" },
       ];
 
+      const quickPick = vscode.window.createQuickPick<PromptQuickPickItem>();
       quickPick.items = [...defaultItems, ...items];
       quickPick.title = `Select ${type} Prompt`;
       quickPick.placeholder = "Choose a prompt or create a new one";
@@ -287,6 +317,12 @@ export class StatusBarItems {
             quickPick.hide();
           } else {
             const item = selected as PromptQuickPickItem;
+            if (item.error) {
+              const doc = await vscode.workspace.openTextDocument(item.path!);
+              await vscode.window.showTextDocument(doc);
+              quickPick.hide();
+              return;
+            }
             if (item.prompt) {
               // 同步到 IDE
               try {
