@@ -23,7 +23,7 @@ export class StatusBarItems {
   private currentProjectPrompt?: Prompt;
 
   constructor(
-    private promptManager: PromptManager,
+    public promptManager: PromptManager,
     private logger: VscodeLogger,
   ) {
     this.globalPromptItem = vscode.window.createStatusBarItem(
@@ -171,6 +171,12 @@ export class StatusBarItems {
       const quickPick = vscode.window.createQuickPick();
       quickPick.items = [
         {
+          label: "$(edit) Edit Current",
+          description: `Edit ${type} rules in IDE directly`,
+          alwaysShow: true,
+          kind: vscode.QuickPickItemKind.Default,
+        },
+        {
           label: "$(plus) Create New",
           description: `Create a new ${type} prompt`,
           alwaysShow: true,
@@ -204,92 +210,73 @@ export class StatusBarItems {
               { modal: true },
               "Confirm",
             );
-
             if (answer === "Confirm") {
               await this.promptManager.deletePrompt(item.prompt);
               quickPick.items = quickPick.items.filter(
                 (i: any) => i.prompt?.meta.id !== item.prompt.meta.id,
               );
+              vscode.window.showInformationMessage(
+                `Successfully deleted prompt "${item.prompt.meta.name}"`,
+              );
             }
           }
         } catch (error) {
+          this.logger.error(`Failed to handle button click:`, error);
           vscode.window.showErrorMessage(
-            `Failed to perform action: ${formatError(error)}`,
+            `Failed to handle button click: ${formatError(error)}`,
           );
         }
       });
 
       quickPick.onDidAccept(async () => {
+        const selected = quickPick.selectedItems[0];
+        if (!selected) return;
+
         try {
-          const selected = quickPick.selectedItems[0] as any;
-          if (selected) {
-            if (selected.label === "$(plus) Create New") {
-              const prompt = await this.promptManager.createPrompt(type);
+          if (selected.label === "$(plus) Create New") {
+            const prompt = await this.promptManager.createPrompt(type);
+            const tomlPath = this.getPromptTomlPath(prompt);
+            const doc = await vscode.workspace.openTextDocument(tomlPath);
+            await vscode.window.showTextDocument(doc);
+          } else if (selected.label === "$(cloud-download) Import from IDE") {
+            const prompt = await this.promptManager.importFromIdeRules(type);
+            if (prompt) {
               const tomlPath = this.getPromptTomlPath(prompt);
               const doc = await vscode.workspace.openTextDocument(tomlPath);
               await vscode.window.showTextDocument(doc);
-              quickPick.hide();
-              return;
             }
-
-            if (selected.label === "$(cloud-download) Import from IDE") {
-              const prompt = await this.promptManager.importFromIdeRules(type);
-              if (prompt) {
-                const tomlPath = this.getPromptTomlPath(prompt);
-                const doc = await vscode.workspace.openTextDocument(tomlPath);
-                await vscode.window.showTextDocument(doc);
-                vscode.window.showInformationMessage(
-                  `Successfully imported ${type} rules from IDE`,
-                );
-              } else {
-                vscode.window.showWarningMessage(
-                  `No ${type} rules found in current IDE`,
-                );
-              }
-              quickPick.hide();
-              return;
-            }
-
-            if (type === "global") {
-              await this.promptManager.syncGlobalPrompt(selected.prompt);
-              this.updatePromptItem("global", selected.prompt);
-            } else {
-              const workspaceRoot =
-                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-              if (!workspaceRoot) {
-                vscode.window.showErrorMessage("No workspace folder is open");
-                return;
-              }
-              await this.promptManager.syncProjectPrompt(
-                selected.prompt,
+          } else if (selected.label === "$(edit) Edit Current") {
+            const workspaceRoot =
+              vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            const rulesPath =
+              await this.promptManager.environmentDetector.getRulesPath(
+                type,
                 workspaceRoot,
               );
-              this.updatePromptItem("project", selected.prompt);
+            const doc = await vscode.workspace.openTextDocument(rulesPath);
+            await vscode.window.showTextDocument(doc, {
+              preview: false,
+            });
+          } else {
+            const item = selected as any;
+            if (item.prompt) {
+              this.updatePromptItem(type, item.prompt);
+              quickPick.hide();
             }
-            quickPick.hide();
           }
         } catch (error) {
+          this.logger.error(`Failed to handle selection:`, error);
           vscode.window.showErrorMessage(
-            `Failed to perform action: ${formatError(error)}`,
+            `Failed to handle selection: ${formatError(error)}`,
           );
         }
       });
 
-      // Check for unsaved changes
-      try {
-        const hasChanges = await this.promptManager.hasUnsavedChanges(type);
-        if (hasChanges) {
-          await this.promptManager.handleSyncConflict(type);
-        }
-      } catch (error) {
-        this.logger.error("Failed to check for unsaved changes:", error);
-        // Don't block the UI if change detection fails
-      }
-
       quickPick.show();
     } catch (error) {
+      this.logger.error(`Failed to show prompt quick pick:`, error);
       vscode.window.showErrorMessage(
-        `Failed to show prompt picker: ${formatError(error)}`,
+        `Failed to show prompt quick pick: ${formatError(error)}`,
       );
     }
   }

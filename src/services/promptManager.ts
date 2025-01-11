@@ -14,12 +14,6 @@ import { Service } from "typedi";
 import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
 
-interface PendingImport {
-  type: PromptType;
-  path: string;
-  timestamp: string;
-}
-
 @Service()
 export class PromptManager {
   private readonly PROMPT_DIR = "~/.oh-my-prompt/prompts";
@@ -28,7 +22,7 @@ export class PromptManager {
   private pendingImportItem?: vscode.StatusBarItem;
 
   constructor(
-    private environmentDetector: EnvironmentDetector,
+    public environmentDetector: EnvironmentDetector,
     private logger: VscodeLogger,
   ) {
     this.ensurePromptDirectories();
@@ -380,9 +374,6 @@ ${prompt.content}
       this.fileWatchers.forEach((watcher) => watcher.dispose());
       this.fileWatchers.clear();
 
-      // Clear existing pending import item
-      this.pendingImportItem?.dispose();
-
       const types: PromptType[] = ["global", "project"];
       for (const type of types) {
         try {
@@ -395,7 +386,6 @@ ${prompt.content}
             type,
             workspaceRoot,
           );
-          const rulesUri = vscode.Uri.file(rulesPath);
 
           // Create watcher for the rules file
           const watcher = vscode.workspace.createFileSystemWatcher(
@@ -403,6 +393,7 @@ ${prompt.content}
               path.dirname(rulesPath),
               path.basename(rulesPath),
             ),
+            false, // Only trigger watcher for external changes
           );
 
           watcher.onDidChange(async () => {
@@ -421,7 +412,6 @@ ${prompt.content}
                       "The changes can be imported as a new prompt in Oh My Prompt",
                   },
                   "Import Now",
-                  "Import Later",
                 );
 
                 if (answer === "Import Now") {
@@ -435,15 +425,16 @@ ${prompt.content}
                     const doc =
                       await vscode.workspace.openTextDocument(tomlPath);
                     await vscode.window.showTextDocument(doc);
-                    vscode.window.showInformationMessage(
-                      `Successfully imported ${type} rules from ${ide}`,
-                    );
                   }
                 }
               }
             } catch (error) {
               this.logger.error(`Failed to handle rules file change:`, error);
             }
+          });
+
+          watcher.onDidCreate(async () => {
+            this.logger.info(`Rules file created: ${rulesPath}`);
           });
 
           this.fileWatchers.set(rulesPath, watcher);
@@ -457,42 +448,6 @@ ${prompt.content}
       }
     } catch (error) {
       this.logger.error(`Failed to setup rule watchers:`, error);
-    }
-  }
-
-  /**
-   * Import pending rules that were deferred
-   */
-  async importPendingRules(): Promise<void> {
-    if (!this.extensionContext) {
-      throw new Error("Extension context not initialized");
-    }
-
-    const pendingImport =
-      this.extensionContext.workspaceState.get<PendingImport>("pendingImport");
-    if (pendingImport) {
-      try {
-        const prompt = await this.importFromIdeRules(pendingImport.type);
-        if (prompt) {
-          const tomlPath = path.join(
-            this.getPromptDir(),
-            pendingImport.type,
-            `${prompt.meta.id}.toml`,
-          );
-          const doc = await vscode.workspace.openTextDocument(tomlPath);
-          await vscode.window.showTextDocument(doc);
-          vscode.window.showInformationMessage(
-            `Successfully imported ${pendingImport.type} rules`,
-          );
-        }
-        // Clear the pending import
-        this.extensionContext.workspaceState.update("pendingImport", undefined);
-        // Hide the status bar item
-        this.pendingImportItem?.dispose();
-      } catch (error) {
-        this.logger.error(`Failed to import pending rules:`, error);
-        throw error;
-      }
     }
   }
 

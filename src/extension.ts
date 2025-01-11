@@ -43,15 +43,6 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "oh-my-prompt.importPendingRules",
-      async () => {
-        await promptManager.importPendingRules();
-      },
-    ),
-  );
-
   // Add items to subscriptions for cleanup
   context.subscriptions.push(statusBarItems);
   context.subscriptions.push(documentWatcher);

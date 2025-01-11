@@ -76,7 +76,6 @@ export class DocumentWatcher {
    * Handle saving of a rules file
    */
   private async handleRulesSave(document: vscode.TextDocument) {
-    const content = document.getText();
     const filePath = document.uri.fsPath;
     const homeDir = process.env.HOME || process.env.USERPROFILE || "";
 
@@ -85,57 +84,45 @@ export class DocumentWatcher {
       await this.environmentDetector.getRulesPath("global");
     const isGlobal =
       path.normalize(filePath) === path.normalize(globalRulesPath);
+    const type = isGlobal ? "global" : "project";
 
-    // Parse metadata from content if available
-    const metaMatch = content.match(/---\n([\s\S]*?)\n---/);
-    let title = "Untitled";
-    let version = "0.0.1";
-    let author = "User";
+    // Only show apply notification for project rules
+    if (!isGlobal) {
+      const ide = await this.environmentDetector.detect();
+      const answer = await vscode.window.showInformationMessage(
+        `${ide} project rules have been saved. Would you like to apply the changes?`,
+        {
+          modal: false,
+          detail: "The changes can be imported as a new prompt in Oh My Prompt",
+        },
+        "Apply Now",
+      );
 
-    if (metaMatch) {
-      const metaContent = metaMatch[1];
-      const titleMatch = metaContent.match(/title:\s*(.+)/);
-      const versionMatch = metaContent.match(/version:\s*(.+)/);
-      const authorMatch = metaContent.match(/author:\s*(.+)/);
+      if (answer === "Apply Now") {
+        const prompt = await this.promptManager.importFromIdeRules(type);
+        if (prompt) {
+          const tomlPath = path.join(
+            this.promptManager.getPromptDir(),
+            type,
+            `${prompt.meta.id}.toml`,
+          );
+          const doc = await vscode.workspace.openTextDocument(tomlPath);
+          await vscode.window.showTextDocument(doc);
+          vscode.window.showInformationMessage(
+            `Successfully applied project rules from ${ide}`,
+          );
+        }
+      }
 
-      if (titleMatch) title = titleMatch[1].trim();
-      if (versionMatch) version = versionMatch[1].trim();
-      if (authorMatch) author = authorMatch[1].trim();
+      this.logger.info(
+        `Project rules saved: ${filePath}. User ${
+          answer === "Apply Now" ? "applied" : "skipped"
+        } the changes.`,
+      );
+    } else {
+      // For IDE rules, just log the change
+      this.logger.info(`IDE rules saved: ${filePath}`);
     }
-
-    // Generate a unique ID based on title and timestamp
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "")
-      .replace(/[TZ]/g, "_")
-      .slice(0, -4);
-    const sanitizedTitle = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-    const ide = await this.environmentDetector.detect();
-    const promptId = `${sanitizedTitle}_${timestamp}`;
-
-    // Create a prompt from the file content
-    const prompt = {
-      meta: {
-        type: isGlobal ? ("global" as const) : ("project" as const),
-        id: promptId,
-        name: title,
-        description: `${ide} ${isGlobal ? "Global" : "Project"} Rules - Created ${new Date().toLocaleString()}`,
-        author,
-        version,
-        date: new Date().toISOString(),
-        license: "MIT",
-      },
-      content,
-    };
-
-    // Save to our prompt store
-    await this.promptManager.savePrompt(prompt);
-    this.logger.info(
-      `Saved ${isGlobal ? "global" : "project"} prompt: ${title}`,
-    );
   }
 
   dispose() {
