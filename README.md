@@ -2,6 +2,14 @@
 
 一种 AI IDE 多 prompt 管理系统，让您轻松管理和切换 AI IDE（如 Windsurf、Cursor）的 Global 和 Project Prompts。
 
+```
+Oh My Prompt Store        IDE Rules Files
+(TOML with metadata)      (Plain text)
+[~/.oh-my-prompt/]        [IDE specific paths]
+     ↓    ↑                    ↑    ↓
+   Export  Import           Apply  Save
+```
+
 ## 特性
 
 - 状态栏快速切换
