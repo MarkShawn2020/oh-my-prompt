@@ -210,6 +210,7 @@ export class StatusBarItems {
             const prompt = await this.promptManager.createPromptUnsaved(type);
             const tempPath = await this.promptManager.writePromptToTemp(prompt);
             const doc = await vscode.workspace.openTextDocument(tempPath);
+            let saved = false;
 
             // Register save handler
             const disposable = vscode.workspace.onDidSaveTextDocument(
@@ -226,15 +227,21 @@ export class StatusBarItems {
                   );
 
                   if (answer === "Save") {
+                    saved = true;
                     await this.promptManager.savePrompt(prompt);
                     vscode.window.showInformationMessage(
                       "Prompt saved successfully",
                     );
-                  }
+                    // Only cleanup temp file and dispose handlers after successful save
+                    await this.promptManager.cleanupTempPrompts(prompt.meta.id);
+                    disposable.dispose();
 
-                  // Cleanup
-                  disposable.dispose();
-                  await this.promptManager.cleanupTempPrompts();
+                    // Open the new file location
+                    const newPath = this.getPromptTomlPath(prompt);
+                    const newDoc =
+                      await vscode.workspace.openTextDocument(newPath);
+                    await vscode.window.showTextDocument(newDoc);
+                  }
                 }
               },
             );
@@ -242,6 +249,8 @@ export class StatusBarItems {
             // Register close handler
             const closeDisposable = vscode.window.onDidChangeVisibleTextEditors(
               async (editors) => {
+                if (saved) return;
+
                 if (!editors.some((e) => e.document.uri.fsPath === tempPath)) {
                   const answer = await vscode.window.showInformationMessage(
                     "Would you like to save this prompt before closing?",
@@ -255,12 +264,11 @@ export class StatusBarItems {
                     vscode.window.showInformationMessage(
                       "Prompt saved successfully",
                     );
+                    // Only cleanup temp file and dispose handlers after successful save
+                    await this.promptManager.cleanupTempPrompts(prompt.meta.id);
+                    closeDisposable.dispose();
+                    disposable.dispose();
                   }
-
-                  // Cleanup
-                  closeDisposable.dispose();
-                  disposable.dispose();
-                  await this.promptManager.cleanupTempPrompts();
                 }
               },
             );
