@@ -39,6 +39,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/prettyjson": "^0.0.33",
     "@types/vscode": "^1.86.0",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
@@ -64,10 +65,11 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@oh-my-commit/shared": "^0.26.5",
-    "reflect-metadata": "^0.2.2",
-    "typedi": "^0.10.0",
     "inversify": "^6.0.1",
-    "@iarna/toml": "^2.2.5"
+    "prettyjson": "^1.2.5",
+    "reflect-metadata": "^0.2.2",
+    "typedi": "^0.10.0"
   }
 }
