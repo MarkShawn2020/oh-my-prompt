@@ -42,20 +42,19 @@ Oh My Prompt Store        IDE Rules Files
 Prompts 存储在 `~/.neurora/oh-my-prompt/prompts/{type}` 目录下，使用 TOML 格式：
 
 ```toml
-meta = {
-    type = "global" | "project",
-    id = "xxx",
-    name = "xxx",
-    description = "xxx",
-    author = "xxx",
-    version = "xxx",
-    date = "xxx",
-    license = "xxx",
-}
-
 content = """
 your prompt content here
 """
+
+[meta]
+type = "global" | "project"
+id = "xxx"
+name = "xxx"
+description = "xxx"
+author = "xxx"
+version = "xxx"
+date = "xxx"
+license = "xxx"
 ```
 
 ## 开发

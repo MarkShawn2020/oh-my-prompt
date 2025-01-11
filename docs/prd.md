@@ -42,6 +42,10 @@ cursor 率先支持这一特性，windsurf 后续也做了跟进（2024-12-12）
 因此，我们的 prompt 管理系统应该支持多个 prompt，由于 vscode 插件的用户配置里字符串显示只能一行，所以 prompt 不适合在用户配置里直接配置，应该采用文件形式进行组织，例如存放在 `~/.oh-my-prompt/prompts/{type}` 文件夹下，文件名为 `xxx.toml`，文件格式为 toml，提供一个 `content` 字段方便用户输入多行 prompt，大致格式为：
 
 ```toml
+content = """
+prompt...
+"""
+
 meta = {
     type = "global" | "project",
     id = "xxx",
@@ -53,11 +57,6 @@ meta = {
     license = "xxx",
 }
 
-content = """
-prompt1
-prompt2
-prompt3
-"""
 ```
 
 所以在 IDE 里，要有个地方点击后就能跳转到目标文件，编辑，然后保存。保存的时候，应该要有一个 post-hook，允许进行一些格式化检查、配置同步等。不确定 vscode 系统是否能够在文件保存的时候执行 post-hook，即便不可以，基于稳健性目标考虑，我们也应该在 IDE 中提供一个入口，能让用户手动执行。
