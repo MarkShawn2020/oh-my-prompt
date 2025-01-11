@@ -1,71 +1,70 @@
-# oh-my-prompt README
+# Oh My Prompt
 
-This is the README for your extension "oh-my-prompt". After writing up a brief description, we recommend including the following sections.
+一种 AI IDE 多 prompt 管理系统，让您轻松管理和切换 AI IDE（如 Windsurf、Cursor）的 Global 和 Project Prompts。
 
-## Features
+## 特性
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- 状态栏快速切换
+  - 直观显示当前激活的 Global 和 Project Prompt
+  - 一键切换不同的 prompt 配置
+  - 快速编辑入口
 
-For example if there is an image subfolder under your extension project workspace:
+- 智能 Prompt 管理
+  - 自动扫描加载 TOML 格式的 prompts
+  - 自动检测项目已有的 `.windsurfrules` 或 `.cursorrules`
+  - 支持在编辑器中直接修改 prompt 文件
 
-\!\[feature X\]\(images/feature-x.png\)
+- 多平台同步
+  - Windsurf Global Prompt 同步
+  - Project Prompt 同步到 `.windsurfrules`
+  - *(即将支持)* Cursor 配置同步
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## 安装
 
-## Requirements
+在 VS Code 中搜索 "Oh My Prompt" 或访问 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) 安装。
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## 使用方法
 
-## Extension Settings
+1. 在状态栏查看当前激活的 Global 和 Project Prompt
+2. 点击状态栏项目打开 Quick Pick 菜单
+3. 选择或编辑您想要的 prompt
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## Prompt 文件格式
 
-For example:
+Prompts 存储在 `~/.neurora/oh-my-prompt/prompts/{type}` 目录下，使用 TOML 格式：
 
-This extension contributes the following settings:
+```toml
+meta = {
+    type = "global" | "project",
+    id = "xxx",
+    name = "xxx",
+    description = "xxx",
+    author = "xxx",
+    version = "xxx",
+    date = "xxx",
+    license = "xxx",
+}
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+content = """
+your prompt content here
+"""
+```
 
-## Known Issues
+## 开发
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+1. Clone 仓库
+2. 运行 `pnpm install`
+3. 在 VS Code 中打开项目
+4. 按 F5 启动调试
 
-## Release Notes
+## 贡献
 
-Users appreciate release notes as you update your extension.
+欢迎提交 Issues 和 Pull Requests！
 
-### 1.0.0
+## 许可证
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+MIT
 
 ---
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**

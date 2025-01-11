@@ -1,0 +1,102 @@
+name: Publish Extension
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.10.0
+          run_install: false
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: |
+          pnpm install --no-frozen-lockfile
+        
+      - name: Build extension
+        run: pnpm build
+        
+      - name: Package extension
+        run: pnpm ext:package
+        
+      - name: Get package info
+        id: package
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          echo "version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create-release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ steps.package.outputs.name }} v${{ steps.package.outputs.version }}
+          tag_name: v${{ steps.package.outputs.version }}
+          files: dist/*.vsix
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          
+      - name: Publish to VS Code Marketplace
+        id: vscode-publish
+        continue-on-error: true
+        run: pnpm ext:publish:vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          
+      - name: Publish to Open VSX Registry
+        id: ovsx-publish
+        continue-on-error: true
+        run: pnpm ext:publish:ovsx
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+          
+      - name: Check publish results
+        if: always()
+        run: |
+          if [ "${{ steps.vscode-publish.outcome }}" == "failure" ] && [ "${{ steps.ovsx-publish.outcome }}" == "failure" ]; then
+            echo "Both marketplace publishes failed"
+            exit 1
+          elif [ "${{ steps.vscode-publish.outcome }}" == "failure" ]; then
+            echo "VS Code Marketplace publish failed"
+            exit 1
+          elif [ "${{ steps.ovsx-publish.outcome }}" == "failure" ]; then
+            echo "Open VSX Registry publish failed"
+            exit 1
+          fi
