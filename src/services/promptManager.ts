@@ -25,10 +25,17 @@ export class PromptManager {
     this.ensurePromptDirectories();
   }
 
+  /**
+   * Get the absolute path to the prompt directory
+   */
+  getPromptDir(): string {
+    return this.expandPath(this.PROMPT_DIR);
+  }
+
   private async ensurePromptDirectories() {
     try {
       // Create base prompt directory
-      const baseDir = this.expandPath(this.PROMPT_DIR);
+      const baseDir = this.getPromptDir();
       await fs.mkdir(baseDir, { recursive: true });
 
       // Create type-specific directories
@@ -77,7 +84,7 @@ export class PromptManager {
   }
 
   async loadPrompts(type: PromptType): Promise<Prompt[]> {
-    const promptDir = path.join(this.expandPath(this.PROMPT_DIR), type);
+    const promptDir = path.join(this.getPromptDir(), type);
     try {
       const files = await fs.readdir(promptDir);
       const prompts = await Promise.all(
@@ -133,10 +140,7 @@ export class PromptManager {
   }
 
   async savePrompt(prompt: Prompt): Promise<void> {
-    const promptDir = path.join(
-      this.expandPath(this.PROMPT_DIR),
-      prompt.meta.type,
-    );
+    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
     const filepath = path.join(promptDir, `${prompt.meta.id}.toml`);
     try {
       // Convert Prompt to TOML format
@@ -194,5 +198,50 @@ ${prompt.content}
 
     this.logger.info(`Syncing project prompt to ${targetPath} (IDE: ${ide})`);
     await fs.writeFile(targetPath, prompt.content);
+  }
+
+  /**
+   * Delete a prompt from the store
+   */
+  async deletePrompt(prompt: Prompt): Promise<void> {
+    const promptDir = path.join(this.getPromptDir(), prompt.meta.type);
+    const filepath = path.join(promptDir, `${prompt.meta.id}.toml`);
+
+    try {
+      await fs.unlink(filepath);
+      this.logger.info(`Deleted prompt: ${prompt.meta.name}`);
+    } catch (error) {
+      this.logger.error("Failed to delete prompt:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new empty prompt
+   */
+  async createPrompt(type: PromptType): Promise<Prompt> {
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "")
+      .replace(/[TZ]/g, "_")
+      .slice(0, -4);
+
+    const prompt: Prompt = {
+      meta: {
+        type,
+        id: timestamp,
+        name: "New Prompt",
+        description: "No description yet",
+        author: "User",
+        version: "0.0.1",
+        date: new Date().toISOString(),
+        license: "MIT",
+      },
+      content: `
+# Enter your prompt content here...`,
+    };
+
+    await this.savePrompt(prompt);
+    return prompt;
   }
 }

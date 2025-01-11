@@ -22,6 +22,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register commands
   context.subscriptions.push(
+    vscode.commands.registerCommand("oh-my-prompt.createPrompt", () => {
+      statusBarItems.showCreatePromptQuickPick();
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("oh-my-prompt.selectGlobalPrompt", () => {
       statusBarItems.showPromptQuickPick("global");
     }),

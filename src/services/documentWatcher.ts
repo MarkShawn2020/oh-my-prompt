@@ -86,15 +86,45 @@ export class DocumentWatcher {
     const isGlobal =
       path.normalize(filePath) === path.normalize(globalRulesPath);
 
+    // Parse metadata from content if available
+    const metaMatch = content.match(/---\n([\s\S]*?)\n---/);
+    let title = "Untitled";
+    let version = "0.0.1";
+    let author = "User";
+
+    if (metaMatch) {
+      const metaContent = metaMatch[1];
+      const titleMatch = metaContent.match(/title:\s*(.+)/);
+      const versionMatch = metaContent.match(/version:\s*(.+)/);
+      const authorMatch = metaContent.match(/author:\s*(.+)/);
+
+      if (titleMatch) title = titleMatch[1].trim();
+      if (versionMatch) version = versionMatch[1].trim();
+      if (authorMatch) author = authorMatch[1].trim();
+    }
+
+    // Generate a unique ID based on title and timestamp
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "")
+      .replace(/[TZ]/g, "_")
+      .slice(0, -4);
+    const sanitizedTitle = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const ide = await this.environmentDetector.detect();
+    const promptId = `${sanitizedTitle}_${timestamp}`;
+
     // Create a prompt from the file content
     const prompt = {
       meta: {
         type: isGlobal ? ("global" as const) : ("project" as const),
-        id: path.basename(filePath),
-        name: `Current ${isGlobal ? "Global" : "Project"} Rules`,
-        description: `Rules file from ${filePath}`,
-        author: "User",
-        version: "1.0.0",
+        id: promptId,
+        name: title,
+        description: `${ide} ${isGlobal ? "Global" : "Project"} Rules - Created ${new Date().toLocaleString()}`,
+        author,
+        version,
         date: new Date().toISOString(),
         license: "MIT",
       },
@@ -104,7 +134,7 @@ export class DocumentWatcher {
     // Save to our prompt store
     await this.promptManager.savePrompt(prompt);
     this.logger.info(
-      `Saved ${isGlobal ? "global" : "project"} rules to prompt store`,
+      `Saved ${isGlobal ? "global" : "project"} prompt: ${title}`,
     );
   }
 
