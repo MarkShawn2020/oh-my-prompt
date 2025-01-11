@@ -18,3 +18,5 @@ docs
 .windsurfrules
 .github
 release
+assets
+!assets/logo-128.jpeg

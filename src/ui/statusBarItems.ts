@@ -5,18 +5,17 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-import * as vscode from "vscode";
-import { PromptManager } from "../services/promptManager";
-import { Prompt, PromptType } from "../types/prompt";
-import { Inject, Service } from "typedi";
-import prettyjson from "prettyjson";
-import { VscodeLogger } from "../vscode-logger";
-import * as path from "path";
 import { formatError } from "@oh-my-commit/shared";
 import * as fs from "fs";
-import { EnvironmentDetector } from "../services/environmentDetector";
+import capitalize from "lodash/capitalize";
+import * as path from "path";
+import { Service } from "typedi";
+import * as vscode from "vscode";
 import { DocumentWatcher } from "../services/documentWatcher";
-import { capitalize } from "lodash";
+import { EnvironmentDetector } from "../services/environmentDetector";
+import { PromptManager } from "../services/promptManager";
+import { Prompt, PromptType } from "../types/prompt";
+import { VscodeLogger } from "../vscode-logger";
 
 const PRIORITY = 103;
 

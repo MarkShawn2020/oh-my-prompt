@@ -96,17 +96,19 @@ export class EnvironmentDetector {
   ): Promise<string> {
     const homeDir = process.env.HOME || process.env.USERPROFILE || "";
     const ide = await this.detect();
+    let rulesPath: string;
 
     if (type === "global") {
       switch (ide) {
         case "windsurf":
-          return path.join(
+          rulesPath = path.join(
             homeDir,
             ".codeium",
             "windsurf",
             "memories",
             "global_rules.md",
           );
+          break;
         case "cursor":
         case "vscode":
         case "unknown":
@@ -121,14 +123,29 @@ export class EnvironmentDetector {
 
       switch (ide) {
         case "windsurf":
-          return path.join(workspaceRoot, ".windsurfrules");
+          rulesPath = path.join(workspaceRoot, ".windsurfrules");
+          break;
         case "cursor":
-          return path.join(workspaceRoot, ".cursorrules");
+          rulesPath = path.join(workspaceRoot, ".cursorrules");
+          break;
         case "vscode":
         case "unknown":
         default:
           throw new Error(`The ${ide} does not support project rules`);
       }
     }
+
+    // Create the file if it doesn't exist
+    try {
+      await fs.access(rulesPath);
+    } catch {
+      // Create parent directories if they don't exist
+      await fs.mkdir(path.dirname(rulesPath), { recursive: true });
+      // Create an empty file
+      await fs.writeFile(rulesPath, "", "utf-8");
+      this.logger.info(`Created rules file at ${rulesPath}`);
+    }
+
+    return rulesPath;
   }
 }
