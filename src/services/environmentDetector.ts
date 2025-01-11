@@ -110,6 +110,20 @@ export class EnvironmentDetector {
           );
           break;
         case "cursor":
+          // For Cursor, we'll show a notification to guide users
+          await vscode.window
+            .showInformationMessage(
+              "Cursor global rules need to be configured in Cursor Settings menu. Please copy and paste your rules there.",
+              "Open Settings",
+            )
+            .then((selection) => {
+              if (selection === "Open Settings") {
+                vscode.commands.executeCommand("Cursor Settings");
+              }
+            });
+          throw new Error(
+            "Please configure global rules in Cursor Settings menu",
+          );
         case "vscode":
         case "unknown":
         default:
@@ -135,15 +149,17 @@ export class EnvironmentDetector {
       }
     }
 
-    // Create the file if it doesn't exist
-    try {
-      await fs.access(rulesPath);
-    } catch {
-      // Create parent directories if they don't exist
-      await fs.mkdir(path.dirname(rulesPath), { recursive: true });
-      // Create an empty file
-      await fs.writeFile(rulesPath, "", "utf-8");
-      this.logger.info(`Created rules file at ${rulesPath}`);
+    // Create the file if it doesn't exist (except for Cursor global rules)
+    if (!(ide === "cursor" && type === "global")) {
+      try {
+        await fs.access(rulesPath);
+      } catch {
+        // Create parent directories if they don't exist
+        await fs.mkdir(path.dirname(rulesPath), { recursive: true });
+        // Create an empty file
+        await fs.writeFile(rulesPath, "", "utf-8");
+        this.logger.info(`Created rules file at ${rulesPath}`);
+      }
     }
 
     return rulesPath;

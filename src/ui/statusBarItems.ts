@@ -314,41 +314,18 @@ export class StatusBarItems {
             const doc = await vscode.workspace.openTextDocument(rulesPath);
             await vscode.window.showTextDocument(doc);
             quickPick.hide();
-          } else {
-            const item = selected as PromptQuickPickItem;
-            if (item.error) {
-              const doc = await vscode.workspace.openTextDocument(item.path!);
+          } else if (selected.prompt) {
+            const ide = await this.environmentDetector.detect();
+            if (ide === "cursor" && type === "global") {
+              await this.promptManager.copyToClipboardForCursor(
+                selected.prompt,
+              );
+            } else {
+              const filePath = this.getPromptTomlPath(selected.prompt);
+              const doc = await vscode.workspace.openTextDocument(filePath);
               await vscode.window.showTextDocument(doc);
-              quickPick.hide();
-              return;
             }
-            if (item.prompt) {
-              // 同步到 IDE
-              try {
-                if (type === "global") {
-                  await this.promptManager.syncGlobalPrompt(item.prompt);
-                } else {
-                  const workspaceRoot =
-                    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                  if (workspaceRoot) {
-                    await this.promptManager.syncProjectPrompt(
-                      item.prompt,
-                      workspaceRoot,
-                    );
-                  }
-                }
-                vscode.window.showInformationMessage(
-                  `Prompt "${item.prompt.meta.name}" has been synced to IDE`,
-                );
-              } catch (error) {
-                this.logger.error("Failed to sync prompt to IDE:", error);
-                vscode.window.showErrorMessage(
-                  `Failed to sync prompt: ${error}`,
-                );
-              }
-
-              quickPick.hide();
-            }
+            quickPick.hide();
           }
         } catch (error) {
           this.logger.error("Failed to handle quickpick selection:", error);
