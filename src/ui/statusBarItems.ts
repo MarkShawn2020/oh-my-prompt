@@ -12,6 +12,7 @@ import { Inject, Service } from "typedi";
 import prettyjson from "prettyjson";
 import { VscodeLogger } from "../vscode-logger";
 import * as path from "path";
+import { formatError } from "@oh-my-commit/shared";
 
 @Service()
 export class StatusBarItems {
@@ -148,94 +149,149 @@ export class StatusBarItems {
   }
 
   async showPromptQuickPick(type: PromptType) {
-    const prompts = await this.promptManager.loadPrompts(type);
-    const items = prompts.map((prompt) => ({
-      label: prompt.meta.name,
-      description: prompt.meta.description,
-      detail: `Version: ${prompt.meta.version} | Author: ${prompt.meta.author} | Date: ${prompt.meta.date}`,
-      buttons: [
+    try {
+      const prompts = await this.promptManager.loadPrompts(type);
+      const items = prompts.map((prompt) => ({
+        label: prompt.meta.name,
+        description: prompt.meta.description,
+        detail: `Version: ${prompt.meta.version} | Author: ${prompt.meta.author} | Date: ${prompt.meta.date}`,
+        buttons: [
+          {
+            iconPath: new vscode.ThemeIcon("edit"),
+            tooltip: "Edit TOML file",
+          },
+          {
+            iconPath: new vscode.ThemeIcon("trash"),
+            tooltip: "Delete prompt",
+          },
+        ],
+        prompt,
+      }));
+
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.items = [
         {
-          iconPath: new vscode.ThemeIcon("edit"),
-          tooltip: "Edit TOML file",
+          label: "$(plus) Create New",
+          description: `Create a new ${type} prompt`,
+          alwaysShow: true,
+          kind: vscode.QuickPickItemKind.Default,
         },
         {
-          iconPath: new vscode.ThemeIcon("trash"),
-          tooltip: "Delete prompt",
+          label: "$(cloud-download) Import from IDE",
+          description: `Import existing ${type} rules from IDE`,
+          alwaysShow: true,
+          kind: vscode.QuickPickItemKind.Default,
         },
-      ],
-      prompt,
-    }));
+        { kind: vscode.QuickPickItemKind.Separator, label: "Prompts" },
+        ...items,
+      ];
+      quickPick.placeholder = `Select ${type} prompt...`;
+      quickPick.matchOnDescription = true;
+      quickPick.matchOnDetail = true;
 
-    const quickPick = vscode.window.createQuickPick();
-    quickPick.items = [
-      {
-        label: "$(plus) Create New",
-        description: `Create a new ${type} prompt`,
-        alwaysShow: true,
-        kind: vscode.QuickPickItemKind.Default,
-      },
-      { kind: vscode.QuickPickItemKind.Separator, label: "Prompts" },
-      ...items,
-    ];
-    quickPick.placeholder = `Select ${type} prompt...`;
-    quickPick.matchOnDescription = true;
-    quickPick.matchOnDetail = true;
+      quickPick.onDidTriggerItemButton(async (event) => {
+        try {
+          const button = event.button;
+          const item = event.item as any;
 
-    quickPick.onDidTriggerItemButton(async (event) => {
-      const button = event.button;
-      const item = event.item as any;
+          if (button.tooltip === "Edit TOML file") {
+            const tomlPath = this.getPromptTomlPath(item.prompt);
+            const doc = await vscode.workspace.openTextDocument(tomlPath);
+            await vscode.window.showTextDocument(doc);
+          } else if (button.tooltip === "Delete prompt") {
+            const answer = await vscode.window.showWarningMessage(
+              `Are you sure you want to delete prompt "${item.prompt.meta.name}"?`,
+              { modal: true },
+              "Confirm",
+            );
 
-      if (button.tooltip === "Edit TOML file") {
-        const tomlPath = this.getPromptTomlPath(item.prompt);
-        const doc = await vscode.workspace.openTextDocument(tomlPath);
-        await vscode.window.showTextDocument(doc);
-      } else if (button.tooltip === "Delete prompt") {
-        const answer = await vscode.window.showWarningMessage(
-          `Are you sure you want to delete prompt "${item.prompt.meta.name}"?`,
-          { modal: true },
-          "Confirm",
-        );
-
-        if (answer === "Confirm") {
-          await this.promptManager.deletePrompt(item.prompt);
-          quickPick.items = quickPick.items.filter(
-            (i: any) => i.prompt?.meta.id !== item.prompt.meta.id,
+            if (answer === "Confirm") {
+              await this.promptManager.deletePrompt(item.prompt);
+              quickPick.items = quickPick.items.filter(
+                (i: any) => i.prompt?.meta.id !== item.prompt.meta.id,
+              );
+            }
+          }
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Failed to perform action: ${formatError(error)}`,
           );
         }
-      }
-    });
+      });
 
-    quickPick.onDidAccept(async () => {
-      const selected = quickPick.selectedItems[0] as any;
-      if (selected) {
-        if (selected.label === "$(plus) Create New") {
-          const prompt = await this.promptManager.createPrompt(type);
-          const tomlPath = this.getPromptTomlPath(prompt);
-          const doc = await vscode.workspace.openTextDocument(tomlPath);
-          await vscode.window.showTextDocument(doc);
-          quickPick.hide();
-          return;
-        }
+      quickPick.onDidAccept(async () => {
+        try {
+          const selected = quickPick.selectedItems[0] as any;
+          if (selected) {
+            if (selected.label === "$(plus) Create New") {
+              const prompt = await this.promptManager.createPrompt(type);
+              const tomlPath = this.getPromptTomlPath(prompt);
+              const doc = await vscode.workspace.openTextDocument(tomlPath);
+              await vscode.window.showTextDocument(doc);
+              quickPick.hide();
+              return;
+            }
 
-        if (type === "global") {
-          await this.promptManager.syncGlobalPrompt(selected.prompt);
-          this.updatePromptItem("global", selected.prompt);
-        } else {
-          const workspaceRoot =
-            vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-          if (workspaceRoot) {
-            await this.promptManager.syncProjectPrompt(
-              selected.prompt,
-              workspaceRoot,
-            );
-            this.updatePromptItem("project", selected.prompt);
+            if (selected.label === "$(cloud-download) Import from IDE") {
+              const prompt = await this.promptManager.importFromIdeRules(type);
+              if (prompt) {
+                const tomlPath = this.getPromptTomlPath(prompt);
+                const doc = await vscode.workspace.openTextDocument(tomlPath);
+                await vscode.window.showTextDocument(doc);
+                vscode.window.showInformationMessage(
+                  `Successfully imported ${type} rules from IDE`,
+                );
+              } else {
+                vscode.window.showWarningMessage(
+                  `No ${type} rules found in current IDE`,
+                );
+              }
+              quickPick.hide();
+              return;
+            }
+
+            if (type === "global") {
+              await this.promptManager.syncGlobalPrompt(selected.prompt);
+              this.updatePromptItem("global", selected.prompt);
+            } else {
+              const workspaceRoot =
+                vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+              if (!workspaceRoot) {
+                vscode.window.showErrorMessage("No workspace folder is open");
+                return;
+              }
+              await this.promptManager.syncProjectPrompt(
+                selected.prompt,
+                workspaceRoot,
+              );
+              this.updatePromptItem("project", selected.prompt);
+            }
+            quickPick.hide();
           }
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Failed to perform action: ${formatError(error)}`,
+          );
         }
-        quickPick.hide();
-      }
-    });
+      });
 
-    quickPick.show();
+      // Check for unsaved changes
+      try {
+        const hasChanges = await this.promptManager.hasUnsavedChanges(type);
+        if (hasChanges) {
+          await this.promptManager.handleSyncConflict(type);
+        }
+      } catch (error) {
+        this.logger.error("Failed to check for unsaved changes:", error);
+        // Don't block the UI if change detection fails
+      }
+
+      quickPick.show();
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        `Failed to show prompt picker: ${formatError(error)}`,
+      );
+    }
   }
 
   dispose() {

@@ -16,6 +16,10 @@ import { DocumentWatcher } from "./services/documentWatcher";
 export function activate(context: vscode.ExtensionContext) {
   const statusBarItems = Container.get(StatusBarItems);
   const documentWatcher = Container.get(DocumentWatcher);
+  const promptManager = Container.get(PromptManager);
+
+  // Initialize prompt manager
+  promptManager.initialize(context);
 
   // Start watching for document saves
   documentWatcher.start();
@@ -39,9 +43,19 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "oh-my-prompt.importPendingRules",
+      async () => {
+        await promptManager.importPendingRules();
+      },
+    ),
+  );
+
   // Add items to subscriptions for cleanup
   context.subscriptions.push(statusBarItems);
   context.subscriptions.push(documentWatcher);
+  context.subscriptions.push(promptManager);
 }
 
 export function deactivate() {}

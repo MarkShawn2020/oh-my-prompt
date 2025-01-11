@@ -26,6 +26,10 @@
       {
         "command": "oh-my-prompt.selectProjectPrompt",
         "title": "Oh My Prompt: Select Project Prompt"
+      },
+      {
+        "command": "oh-my-prompt.importPendingRules",
+        "title": "Oh My Prompt: Import Modified IDE Rules"
       }
     ]
   },
