@@ -112,16 +112,10 @@ export class EnvironmentDetector {
           break;
         case "cursor":
           // For Cursor, we'll show a notification to guide users
-          await vscode.window
-            .showInformationMessage(
-              "Cursor global rules need to be configured in Cursor Settings menu. Please copy and paste your rules there.",
-              "Open Settings",
-            )
-            .then((selection) => {
-              if (selection === "Open Settings") {
-                void openCursorSettings();
-              }
-            });
+          await openCursorSettings();
+          await vscode.window.showInformationMessage(
+            "Please configure global rules in Custom Instructions.",
+          );
           throw new Error(
             "Please configure global rules in Cursor Settings menu",
           );

@@ -392,14 +392,10 @@ export class PromptManager {
   async copyToClipboardForCursor(prompt: Prompt): Promise<void> {
     try {
       await vscode.env.clipboard.writeText(prompt.content);
-      const action = await vscode.window.showInformationMessage(
-        "Rules copied to clipboard. Please paste them in Cursor Settings > Custom Instructions.",
-        "Open Settings",
+      await openCursorSettings();
+      await vscode.window.showInformationMessage(
+        "Rules copied to clipboard. Please paste them in Custom Instructions.",
       );
-
-      if (action === "Open Settings") {
-        await openCursorSettings();
-      }
     } catch (error) {
       this.logger.error("Failed to copy rules to clipboard:", error);
       throw error;
