@@ -311,6 +311,7 @@ export class StatusBarItems {
               type,
               workspaceRoot,
             );
+            this.logger.info(`Opening ${type} rules file in IDE: ${rulesPath}`);
             const doc = await vscode.workspace.openTextDocument(rulesPath);
             await vscode.window.showTextDocument(doc);
             quickPick.hide();
