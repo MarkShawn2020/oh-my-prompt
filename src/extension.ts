@@ -6,14 +6,30 @@
  * LICENSE file in the root directory of this source tree.
  */
 import "reflect-metadata";
-
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {}
+import { PromptManager } from "./services/promptManager";
+import { StatusBarItems } from "./ui/statusBarItems";
+import Container from "typedi";
 
-// This method is called when your extension is deactivated
+export function activate(context: vscode.ExtensionContext) {
+  const statusBarItems = Container.get(StatusBarItems);
+
+  // Register commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("oh-my-prompt.selectGlobalPrompt", () => {
+      statusBarItems.showPromptQuickPick("global");
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("oh-my-prompt.selectProjectPrompt", () => {
+      statusBarItems.showPromptQuickPick("project");
+    }),
+  );
+
+  // Add status bar items to subscriptions
+  context.subscriptions.push(statusBarItems);
+}
+
 export function deactivate() {}

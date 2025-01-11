@@ -1,7 +1,7 @@
 {
   "name": "oh-my-prompt",
   "displayName": "Oh My Prompt",
-  "description": "",
+  "description": "A VSCode extension for managing multiple AI prompts",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.86.0"
@@ -16,8 +16,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "oh-my-prompt.helloWorld",
-        "title": "Hello World"
+        "command": "oh-my-prompt.selectGlobalPrompt",
+        "title": "Oh My Prompt: Select Global Prompt"
+      },
+      {
+        "command": "oh-my-prompt.selectProjectPrompt",
+        "title": "Oh My Prompt: Select Project Prompt"
       }
     ]
   },
@@ -62,6 +66,8 @@
   "dependencies": {
     "@oh-my-commit/shared": "^0.26.5",
     "reflect-metadata": "^0.2.2",
-    "typedi": "^0.10.0"
+    "typedi": "^0.10.0",
+    "inversify": "^6.0.1",
+    "@iarna/toml": "^2.2.5"
   }
 }
