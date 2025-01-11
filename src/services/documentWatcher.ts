@@ -11,10 +11,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { Service } from "typedi";
 import * as vscode from "vscode";
-import { PromptSchema, PromptType } from "../types/prompt";
-import { VscodeLogger } from "../vscode-logger";
-import { EnvironmentDetector } from "./environmentDetector";
+import { PromptType, PromptSchema } from "../types/prompt";
 import { PromptManager } from "./promptManager";
+import { EnvironmentDetector } from "./environmentDetector";
+import { VscodeLogger } from "../vscode-logger";
 
 @Service()
 export class DocumentWatcher {
@@ -24,12 +24,39 @@ export class DocumentWatcher {
     type: PromptType;
     content: string;
   }>();
+  private fileWatchers: Map<string, vscode.FileSystemWatcher> = new Map();
+  private extensionContext?: vscode.ExtensionContext;
 
   constructor(
     private readonly promptManager: PromptManager,
     private readonly environmentDetector: EnvironmentDetector,
     private readonly logger: VscodeLogger,
-  ) {}
+  ) {
+    // 监听文件保存事件
+    vscode.workspace.onDidSaveTextDocument(
+      async (document) => {
+        try {
+          if (document.uri.fsPath.endsWith(".toml")) {
+            const content = document.getText();
+            try {
+              // 验证文件内容
+              PromptSchema.parse(TOML.parse(content));
+            } catch (error) {
+              // 显示错误通知
+              vscode.window.showErrorMessage(
+                `Invalid prompt file: ${error instanceof Error ? error.message : "Unknown error"}`,
+                { modal: false },
+              );
+            }
+          }
+        } catch (error) {
+          this.logger.error("Error validating prompt file:", error);
+        }
+      },
+      null,
+      this.disposables,
+    );
+  }
 
   /**
    * Get the event emitter for file changes
@@ -186,8 +213,115 @@ export class DocumentWatcher {
     return undefined;
   }
 
+  /**
+   * Initialize the watcher with extension context
+   */
+  initialize(context: vscode.ExtensionContext) {
+    this.extensionContext = context;
+    this.watchIdeRules();
+  }
+
+  /**
+   * Watch IDE rules files for changes
+   */
+  private async watchIdeRules() {
+    if (!this.extensionContext) {
+      this.logger.error("Extension context not initialized");
+      return;
+    }
+
+    try {
+      // Clear existing watchers
+      this.fileWatchers.forEach((watcher) => watcher.dispose());
+      this.fileWatchers.clear();
+
+      const types: PromptType[] = ["global", "project"];
+      for (const type of types) {
+        try {
+          const workspaceRoot =
+            type === "project"
+              ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+              : undefined;
+
+          const rulesPath = await this.environmentDetector.getRulesPath(
+            type,
+            workspaceRoot,
+          );
+
+          // Create watcher for the rules file
+          const watcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(
+              path.dirname(rulesPath),
+              path.basename(rulesPath),
+            ),
+            false, // Only trigger watcher for external changes
+          );
+
+          watcher.onDidChange(async () => {
+            try {
+              const ide = await this.environmentDetector.detect();
+              const content = await fs.promises.readFile(rulesPath, "utf-8");
+              const prompts = await this.promptManager.loadPrompts(type);
+              const currentPrompt = prompts.find(
+                (p) => p.prompt?.content === content,
+              );
+
+              if (!currentPrompt) {
+                const answer = await vscode.window.showInformationMessage(
+                  `${ide} ${type} rules have been modified. Would you like to sync the changes?`,
+                  {
+                    modal: false,
+                    detail:
+                      "The changes can be synced as a new prompt in Oh My Prompt",
+                  },
+                  "Sync Now",
+                );
+
+                if (answer === "Sync Now") {
+                  const prompt =
+                    await this.promptManager.importFromIdeRules(type);
+                  if (prompt) {
+                    const tomlPath = path.join(
+                      this.promptManager.getPromptDir(),
+                      type,
+                      `${prompt.meta.id}.toml`,
+                    );
+                    const doc =
+                      await vscode.workspace.openTextDocument(tomlPath);
+                    await vscode.window.showTextDocument(doc);
+                  }
+                }
+              }
+            } catch (error) {
+              this.logger.error(`Failed to handle rules file change:`, error);
+            }
+          });
+
+          watcher.onDidCreate(async () => {
+            this.logger.info(`Rules file created: ${rulesPath}`);
+          });
+
+          this.fileWatchers.set(rulesPath, watcher);
+          this.logger.info(`Watching ${type} rules at: ${rulesPath}`);
+        } catch (error) {
+          this.logger.error(
+            `Failed to setup watcher for ${type} rules:`,
+            error,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to setup rule watchers:`, error);
+    }
+  }
+
+  /**
+   * Dispose all watchers
+   */
   dispose() {
+    this.fileWatchers.forEach((watcher) => watcher.dispose());
+    this.fileWatchers.clear();
     this.disposables.forEach((d) => d.dispose());
-    this.fileChangeEmitter.dispose();
+    this.disposables = [];
   }
 }

@@ -17,22 +17,19 @@ import { Service } from "typedi";
 import { EnvironmentDetector } from "./environmentDetector";
 import { VscodeLogger } from "../vscode-logger";
 import { formatError } from "@oh-my-commit/shared";
-import { DocumentWatcher } from "./documentWatcher"; // Add this line
+import { DocumentWatcher } from "./documentWatcher";
 
 @Service()
 export class PromptManager {
   private readonly PROMPT_DIR = "~/.oh-my-prompt/prompts";
-  private fileWatchers: Map<string, vscode.FileSystemWatcher> = new Map();
   private extensionContext?: vscode.ExtensionContext;
   private pendingImportItem?: vscode.StatusBarItem;
-  private documentWatcher: DocumentWatcher; // Add this line
 
   constructor(
     public environmentDetector: EnvironmentDetector,
     private logger: VscodeLogger,
-    documentWatcher: DocumentWatcher, // Add this line
+    private documentWatcher: DocumentWatcher,
   ) {
-    this.documentWatcher = documentWatcher; // Add this line
     this.ensurePromptDirectories();
   }
 
@@ -41,7 +38,6 @@ export class PromptManager {
    */
   initialize(context: vscode.ExtensionContext) {
     this.extensionContext = context;
-    this.watchIdeRules();
   }
 
   /**
@@ -390,101 +386,7 @@ export class PromptManager {
     }
   }
 
-  /**
-   * Watch IDE rules files for changes
-   */
-  private async watchIdeRules() {
-    if (!this.extensionContext) {
-      this.logger.error("Extension context not initialized");
-      return;
-    }
-
-    try {
-      // Clear existing watchers
-      this.fileWatchers.forEach((watcher) => watcher.dispose());
-      this.fileWatchers.clear();
-
-      const types: PromptType[] = ["global", "project"];
-      for (const type of types) {
-        try {
-          const workspaceRoot =
-            type === "project"
-              ? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-              : undefined;
-
-          const rulesPath = await this.environmentDetector.getRulesPath(
-            type,
-            workspaceRoot,
-          );
-
-          // Create watcher for the rules file
-          const watcher = vscode.workspace.createFileSystemWatcher(
-            new vscode.RelativePattern(
-              path.dirname(rulesPath),
-              path.basename(rulesPath),
-            ),
-            false, // Only trigger watcher for external changes
-          );
-
-          watcher.onDidChange(async () => {
-            try {
-              const ide = await this.environmentDetector.detect();
-              const content = await fs.readFile(rulesPath, "utf-8");
-              const prompts = await this.loadPrompts(type);
-              const currentPrompt = prompts.find(
-                (p) => p.prompt?.content === content,
-              );
-
-              if (!currentPrompt) {
-                const answer = await vscode.window.showInformationMessage(
-                  `${ide} ${type} rules have been modified. Would you like to sync the changes?`,
-                  {
-                    modal: false,
-                    detail:
-                      "The changes can be synced as a new prompt in Oh My Prompt",
-                  },
-                  "Sync Now",
-                );
-
-                if (answer === "Sync Now") {
-                  const prompt = await this.importFromIdeRules(type);
-                  if (prompt) {
-                    const tomlPath = path.join(
-                      this.getPromptDir(),
-                      type,
-                      `${prompt.meta.id}.toml`,
-                    );
-                    const doc =
-                      await vscode.workspace.openTextDocument(tomlPath);
-                    await vscode.window.showTextDocument(doc);
-                  }
-                }
-              }
-            } catch (error) {
-              this.logger.error(`Failed to handle rules file change:`, error);
-            }
-          });
-
-          watcher.onDidCreate(async () => {
-            this.logger.info(`Rules file created: ${rulesPath}`);
-          });
-
-          this.fileWatchers.set(rulesPath, watcher);
-          this.logger.info(`Watching ${type} rules at: ${rulesPath}`);
-        } catch (error) {
-          this.logger.error(
-            `Failed to setup watcher for ${type} rules:`,
-            error,
-          );
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Failed to setup rule watchers:`, error);
-    }
-  }
-
   dispose() {
-    this.fileWatchers.forEach((watcher) => watcher.dispose());
     this.pendingImportItem?.dispose();
   }
 }

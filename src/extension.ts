@@ -14,12 +14,13 @@ import Container from "typedi";
 import { DocumentWatcher } from "./services/documentWatcher";
 
 export function activate(context: vscode.ExtensionContext) {
-  const statusBarItems = Container.get(StatusBarItems);
-  const documentWatcher = Container.get(DocumentWatcher);
   const promptManager = Container.get(PromptManager);
+  const documentWatcher = Container.get(DocumentWatcher);
+  const statusBarItems = Container.get(StatusBarItems);
 
   // Initialize prompt manager
   promptManager.initialize(context);
+  documentWatcher.initialize(context);
 
   // Start watching for document saves
   documentWatcher.start();
