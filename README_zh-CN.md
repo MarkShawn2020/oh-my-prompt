@@ -29,55 +29,60 @@
 <h1 align="center">Oh My Prompt</h1>
 
 <p align="center">
-  ✨ Your Next-generation Prompt Management System for AI IDEs ✨
+  ✨Your Next-gen Prompt Solution for AI Coding ✨
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
 </p>
 
+
 English | [中文](./README.zh-CN.md) | [Website Docs](https://oh-my-prompt.github.io) | [VScode Extension](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) | [Open Visx Extension](https://open-vsx.org/extension/markshawn2020/oh-my-prompt) | [Releases](https://github.com/markshawn2020/oh-my-prompt/releases)
+
 
 </div>
 
 # Oh My Prompt
 
-A sophisticated prompt management system for AI-powered IDEs, enabling seamless management and switching between Global and Project Prompts for platforms like Windsurf and Cursor.
+一种 AI IDE 多 prompt 管理系统，让您轻松管理和切换 AI IDE（如 Windsurf、Cursor）的 Global 和 Project Prompts。
+
 
 ![Demo GIF](./assets/demo.gif)
 
-## Key Features
 
-### Status Bar Integration
-- Real-time display of active Global and Project Prompts
-- One-click prompt configuration switching
-- Quick access to prompt editing interface
+## Features
 
-### Intelligent Prompt Management
-- Automatic scanning and loading of TOML-formatted prompts
-- Native detection of existing `.windsurfrules` or `.cursorrules`
-- In-editor prompt file modification support
+- 状态栏快速切换
+  - 直观显示当前激活的 Global 和 Project Prompt
+  - 一键切换不同的 prompt 配置
+  - 快速编辑入口
 
-### Cross-platform Synchronization
-- Windsurf Global Prompt synchronization
-- Project Prompt synchronization with `.windsurfrules`
-- *(Coming Soon)* Cursor configuration integration
+- 智能 Prompt 管理
+  - 自动扫描加载 TOML 格式的 prompts
+  - 自动检测项目已有的 `.windsurfrules` 或 `.cursorrules`
+  - 支持在编辑器中直接修改 prompt 文件
+
+- 多平台同步
+  - Windsurf Global Prompt 同步
+  - Project Prompt 同步到 `.windsurfrules`
+  - *(即将支持)* Cursor 配置同步
 
 ## Installation
 
-### VS Code / Cursor / Windsurf / Other IDEs
+### VS Code / Cursor / Windsurf / ...
 
-Search for "Oh My Prompt" in your IDE's extension marketplace and install to get started.
+插件市场搜索 "Oh My Prompt"，安装即享！
 
 ## Usage
 
-1. Monitor active Global and Project Prompts via the status bar
-2. Access the Quick Pick menu by clicking the status bar items
-3. Select or modify your desired prompts
+1. 在状态栏查看当前激活的 Global 和 Project Prompt
+2. 点击状态栏项目打开 Quick Pick 菜单
+3. 选择或编辑您想要的 prompt
 
-## Architecture
 
-### Synchronization Mechanism
+## ARCHITECTURE
+
+### Sync Mechanism
 
 ```
 Oh My Prompt Store        IDE Rules Files
@@ -89,7 +94,7 @@ Oh My Prompt Store        IDE Rules Files
 
 ### Prompt Specification
 
-Prompts are stored in `~/.neurora/oh-my-prompt/prompts/{type}` using TOML format:
+Prompts 存储在 `~/.neurora/oh-my-prompt/prompts/{type}` 目录下，使用 TOML 格式：
 
 ```toml
 content = """
@@ -109,19 +114,19 @@ license = "xxx"
 
 ## Development
 
-1. Clone the repository
-2. Execute `pnpm install`
-3. Open the project in VS Code
-4. Press F5 to start debugging
+1. Clone 仓库
+2. 运行 `pnpm install`
+3. 在 VS Code 中打开项目
+4. 按 F5 启动调试
 
 ## Contributing
 
-Issues and Pull Requests are welcome! Please feel free to contribute to the project.
+欢迎提交 Issues 和 Pull Requests！
 
-## License
+## LICENSE
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT
 
 ---
 
-**Enhance your AI development experience with Oh My Prompt!**
+**Enjoy!**
