@@ -11,8 +11,8 @@
                 :!:  !:!  :!:  !:!     :!:     :!:    :!:    
                 ::::: ::  ::   :::     :::     ::      ::    
                  : :  :    :   : :      :      :       :     
-                                                             
-                                                                              
+
+
                 @@@@@@@   @@@@@@@    @@@@@@   @@@@@@@@@@   @@@@@@@   @@@@@@@  
                 @@@@@@@@  @@@@@@@@  @@@@@@@@  @@@@@@@@@@@  @@@@@@@@  @@@@@@@  
                 @@!  @@@  @@!  @@@  @@!  @@@  @@! @@! @@!  @@!  @@@    @@!    
@@ -23,7 +23,7 @@
                 :!:       :!:  !:!  :!:  !:!  :!:     :!:  :!:         :!:    
                  ::       ::   :::  ::::: ::  :::     ::    ::          ::    
                  :         :   : :   : :  :    :      :     :           :          
-                
+
 ```
 
 <h1 align="center">Oh My Prompt</h1>
@@ -33,8 +33,6 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@ohmyprompt/cli?style=flat-square&color=00a8f0" alt="npm version" />
-  <img src="https://img.shields.io/npm/dm/@markshawn2020/cli.svg?style=flat-square&color=00a8f0" alt="downloads" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
 </p>
 
