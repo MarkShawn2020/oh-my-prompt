@@ -42,7 +42,7 @@ English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudi
 
 </div>
 
-# Oh My Prompt
+
 
 一种 AI IDE 多 prompt 管理系统，让您轻松管理和切换 AI IDE（如 Windsurf、Cursor）的 Global 和 Project Prompts。
 

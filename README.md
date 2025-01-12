@@ -40,7 +40,6 @@ English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudi
 
 </div>
 
-# Oh My Prompt
 
 A sophisticated prompt management system for AI-powered IDEs, enabling seamless management and switching between Global and Project Prompts for platforms like Windsurf and Cursor.
 
