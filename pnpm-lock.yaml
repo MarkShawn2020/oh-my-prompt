@@ -14,7 +14,16 @@ importers:
       '@oh-my-commit/shared':
         specifier: ^0.26.5
         version: 0.26.5
+      '@types/lodash':
+        specifier: ^4.17.14
+        version: 4.17.14
+      '@types/lodash-es':
+        specifier: ^4.17.12
+        version: 4.17.12
       lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
       prettyjson:
@@ -33,9 +42,6 @@ importers:
         specifier: ^3.24.1
         version: 3.24.1
     devDependencies:
-      '@types/lodash':
-        specifier: ^4.17.14
-        version: 4.17.14
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10
@@ -304,6 +310,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/lodash-es@4.17.12':
+    resolution: {integrity: sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==}
 
   '@types/lodash@4.17.14':
     resolution: {integrity: sha512-jsxagdikDiDBeIRaPYtArcT8my4tN1og7MtMRquFT3XNA6axxyHDRUemqDz/taRDdOUn0GnGHRCuff4q48sW9A==}
@@ -3034,6 +3043,10 @@ snapshots:
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
+
+  '@types/lodash-es@4.17.12':
+    dependencies:
+      '@types/lodash': 4.17.14
 
   '@types/lodash@4.17.14': {}
 

@@ -75,13 +75,15 @@
     "ts-loader": "^9.5.1",
     "typescript": "^5.7.2",
     "webpack": "^5.95.0",
-    "@types/lodash": "^4.17.14",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@oh-my-commit/shared": "^0.26.5",
+    "@types/lodash": "^4.17.14",
+    "@types/lodash-es": "^4.17.12",
     "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "prettyjson": "^1.2.5",
     "reflect-metadata": "^0.2.2",
     "typedi": "^0.10.0",

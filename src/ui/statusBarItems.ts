@@ -7,7 +7,7 @@
  */
 import { formatError } from "@oh-my-commit/shared";
 import * as fs from "fs";
-import capitalize from "lodash/capitalize";
+import capitalize  from "lodash/capitalize";
 import * as path from "path";
 import { Service } from "typedi";
 import * as vscode from "vscode";
