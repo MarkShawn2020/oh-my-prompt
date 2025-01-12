@@ -222,7 +222,7 @@ export class PromptManager {
 
     return {
       meta,
-      content: "",
+      content: "You are a senior programmer who helps write better code by thinking step-by-step and always considering readability, security, testing, and performance.",
     };
   }
 
