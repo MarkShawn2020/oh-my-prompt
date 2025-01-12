@@ -5,3 +5,4 @@ node_modules
 *.vsix
 .env
 release
+.DS_Store

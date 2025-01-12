@@ -1,3 +1,49 @@
+<div align="center">
+
+```shell
+ @@@@@@   @@@  @@@     @@@@@@@@@@   @@@ @@@  
+@@@@@@@@  @@@  @@@     @@@@@@@@@@@  @@@ @@@  
+@@!  @@@  @@!  @@@     @@! @@! @@!  @@! !@@  
+!@!  @!@  !@!  @!@     !@! !@! !@!  !@! @!!  
+@!@  !@!  @!@!@!@!     @!! !!@ @!@   !@!@!   
+!@!  !!!  !!!@!!!!     !@!   ! !@!    @!!!   
+!!:  !!!  !!:  !!!     !!:     !!:    !!:    
+:!:  !:!  :!:  !:!     :!:     :!:    :!:    
+::::: ::  ::   :::     :::     ::      ::    
+ : :  :    :   : :      :      :       :     
+                                             
+                                                              
+@@@@@@@   @@@@@@@    @@@@@@   @@@@@@@@@@   @@@@@@@   @@@@@@@  
+@@@@@@@@  @@@@@@@@  @@@@@@@@  @@@@@@@@@@@  @@@@@@@@  @@@@@@@  
+@@!  @@@  @@!  @@@  @@!  @@@  @@! @@! @@!  @@!  @@@    @@!    
+!@!  @!@  !@!  @!@  !@!  @!@  !@! !@! !@!  !@!  @!@    !@!    
+@!@@!@!   @!@!!@!   @!@  !@!  @!! !!@ @!@  @!@@!@!     @!!    
+!!@!!!    !!@!@!    !@!  !!!  !@!   ! !@!  !!@!!!      !!!    
+!!:       !!: :!!   !!:  !!!  !!:     !!:  !!:         !!:    
+:!:       :!:  !:!  :!:  !:!  :!:     :!:  :!:         :!:    
+ ::       ::   :::  ::::: ::  :::     ::    ::          ::    
+ :         :   : :   : :  :    :      :     :           :          
+
+```
+
+<h1 align="center">Oh My Prompt</h1>
+
+<p align="center">
+  ✨Your Next-gen Prompt Solution for AI Coding ✨
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/npm/v/@ohmyprompt/cli?style=flat-square&color=00a8f0" alt="npm version" />
+  <img src="https://img.shields.io/npm/dm/@markshawn2020/cli.svg?style=flat-square&color=00a8f0" alt="downloads" />
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
+</p>
+
+
+English | [中文](./README.zh-CN.md) | [Website Docs](https://oh-my-prompt.github.io) | [VScode Extension](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) | [Open Visx Extension](https://open-vsx.org/extension/markshawn2020/oh-my-prompt) | [Releases](https://github.com/markshawn2020/oh-my-prompt/releases)
+
+
+</div>
+
 # Oh My Prompt
 
 一种 AI IDE 多 prompt 管理系统，让您轻松管理和切换 AI IDE（如 Windsurf、Cursor）的 Global 和 Project Prompts。
