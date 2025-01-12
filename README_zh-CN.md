@@ -85,11 +85,17 @@ English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudi
 ### Sync Mechanism
 
 ```
-Oh My Prompt Store        IDE Rules Files
-(TOML with metadata)      (Plain text)
-[~/.oh-my-prompt/]        [IDE specific paths]
-     ↓    ↑                    ↑    ↓
-   Export  Import           Apply  Save
+Oh My Prompt Store        
+(TOML with metadata)      
+[~/.neurora/oh-my-prompt]
+     ↓    ↑               
+ Export  Import         
+
+IDE Rules Files
+(Plain text)
+[IDE specific paths]
+     ↑    ↓
+  Apply  Save
 ```
 
 ### Prompt Specification
