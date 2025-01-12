@@ -36,7 +36,7 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
 </p>
 
-English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) | [Open Visx](https://open-vsx.org/extension/markshawn2020/oh-my-prompt) | [Releases](https://github.com/markshawn2020/oh-my-prompt/releases)
+English | [中文](./README.zh-CN.md)
 
 </div>
 
@@ -64,9 +64,11 @@ A sophisticated prompt management system for AI-powered IDEs, enabling seamless 
 
 ## Installation
 
-### VS Code / Cursor / Windsurf / Other IDEs
-
 Search for "Oh My Prompt" in your IDE's extension marketplace and install to get started.
+
+- [VScode, e.g. Cursor](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) 
+- [Open Visx, e.g. Windsurf](https://open-vsx.org/extension/markshawn2020/oh-my-prompt)
+- [Releases (manually download and install)](https://github.com/markshawn2020/oh-my-prompt/releases)
 
 ## Usage
 

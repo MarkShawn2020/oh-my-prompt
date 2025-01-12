@@ -29,7 +29,7 @@
 <h1 align="center">Oh My Prompt</h1>
 
 <p align="center">
-  ✨Your Next-gen Prompt Solution for AI Coding ✨
+  ✨ AI IDE 专用多 prompt 管理系统，支持跨 IDE、一键切换、智能同步 Global / Project Prompt！ ✨
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 </p>
 
 
-English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) | [Open Visx](https://open-vsx.org/extension/markshawn2020/oh-my-prompt) | [Releases](https://github.com/markshawn2020/oh-my-prompt/releases)
+English | [中文](./README.zh-CN.md)
 
 
 </div>
@@ -69,9 +69,13 @@ English | [中文](./README.zh-CN.md) | [VScode](https://marketplace.visualstudi
 
 ## Installation
 
-### VS Code / Cursor / Windsurf / ...
 
-插件市场搜索 "Oh My Prompt"，安装即享！
+Search for "Oh My Prompt" in your IDE's extension marketplace and install to get started.
+
+- [VScode, e.g. Cursor](https://marketplace.visualstudio.com/items?itemName=markshawn2020.oh-my-prompt) 
+- [Open Visx, e.g. Windsurf](https://open-vsx.org/extension/markshawn2020/oh-my-prompt)
+- [Releases (manually download and install)](https://github.com/markshawn2020/oh-my-prompt/releases)
+
 
 ## Usage
 
