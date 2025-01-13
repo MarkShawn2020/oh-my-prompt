@@ -21,18 +21,19 @@ image_size=$(magick identify -format "%wx%h" "$input_image")
 width=$(echo $image_size | cut -d'x' -f1)
 height=$(echo $image_size | cut -d'x' -f2)
 
-# 创建半透明橙色背景的文字水印
+# 创建半透明橙红色背景的文字水印
 magick "$input_image" \
   \( -size "${width}x${strip_height}" \
-     xc:"rgba(255,165,0,0.7)" \
+     xc:"rgba(216,74,27,0.9)" \
      -fill white \
+     -stroke none \
      -font "$font_type" \
      -pointsize $font_size1 \
      -gravity north \
-     -annotate +0+20 "$text1" \
+     -annotate +0+25 "$text1" \
      -pointsize $font_size2 \
      -gravity south \
-     -annotate +0+20 "$text2" \
+     -annotate +0+25 "$text2" \
   \) \
   -gravity center \
   -composite \
