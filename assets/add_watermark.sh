@@ -12,8 +12,8 @@ text2="AI IDE 多 prompt 插件"
 current_date=$(date '+%Y-%m-%d')
 date_font_size=24
 date_padding=10
-date_height=40
-date_width=160
+date_height=50
+date_width=140
 theme_color="rgb(216,74,27)"
 
 # 设置字体大小和类型
@@ -42,15 +42,17 @@ magick \( -size "${width}x${strip_height}" \
      -gravity south \
      -annotate +0+25 "$text2" \
      \( -size "${date_width}x${date_height}" \
-        xc:white \
+        xc:none \
+        -fill white \
+        -draw "path 'M 0,${date_height} L ${date_width},${date_height} L ${date_width},0 Q ${date_width},${date_height} 0,${date_height} Z'" \
         -fill "$theme_color" \
         -font "$font_type" \
         -pointsize $date_font_size \
         -gravity center \
-        -annotate +0+0 "$current_date" \
+        -annotate +0+5 "$current_date" \
      \) \
      -gravity northeast \
-     -geometry +0+${date_padding} \
+     -geometry +${date_padding}+0 \
      -composite \
   \) watermark.png
 
