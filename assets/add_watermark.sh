@@ -8,6 +8,14 @@ output_image="demo2.gif"
 text1="Oh My Prompt"
 text2="AI IDE 多 prompt 插件"
 
+# 设置日期格式和样式
+current_date=$(date '+%Y-%m-%d')
+date_font_size=24
+date_padding=10
+date_height=40
+date_width=160
+theme_color="rgb(216,74,27)"
+
 # 设置字体大小和类型
 font_size1=60
 font_size2=40
@@ -33,6 +41,17 @@ magick \( -size "${width}x${strip_height}" \
      -pointsize $font_size2 \
      -gravity south \
      -annotate +0+25 "$text2" \
+     \( -size "${date_width}x${date_height}" \
+        xc:white \
+        -fill "$theme_color" \
+        -font "$font_type" \
+        -pointsize $date_font_size \
+        -gravity center \
+        -annotate +0+0 "$current_date" \
+     \) \
+     -gravity northeast \
+     -geometry +0+${date_padding} \
+     -composite \
   \) watermark.png
 
 # 为GIF的每一帧添加水印
