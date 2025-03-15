@@ -222,7 +222,8 @@ export class PromptManager {
 
     return {
       meta,
-      content: "You are a senior programmer who helps write better code by thinking step-by-step and always considering readability, security, testing, and performance.",
+      content:
+        "You are a senior programmer who helps write better code by thinking step-by-step and always considering readability, security, testing, and performance.",
     };
   }
 
@@ -391,10 +392,13 @@ export class PromptManager {
   async copyToClipboardForCursor(prompt: Prompt): Promise<void> {
     try {
       await vscode.env.clipboard.writeText(prompt.content);
-      await openCursorSettings();
-      await vscode.window.showInformationMessage(
-        "Rules copied to clipboard. Please paste them in Custom Instructions.",
+      const action = await vscode.window.showInformationMessage(
+        "Rules copied to clipboard. Click 'Open Settings' to paste them in Custom Instructions.",
+        "Open Settings",
       );
+      if (action === "Open Settings") {
+        await openCursorSettings();
+      }
     } catch (error) {
       this.logger.error("Failed to copy rules to clipboard:", error);
       throw error;

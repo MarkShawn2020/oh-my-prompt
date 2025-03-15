@@ -3,17 +3,14 @@
 # 设置输入输出文件
 input_image="demo.gif"
 output_image="demo2.gif"
-
-# 设置文字内容
 text1="Oh My Prompt"
 text2="AI IDE 多 prompt 插件"
+current_date="2025-01-12"
 
-# 设置日期格式和样式
-current_date=$(date '+%Y-%m-%d')
 date_font_size=24
 date_padding=10
-date_height=50
-date_width=140
+date_height=40
+date_width=170
 theme_color="rgb(216,74,27)"
 
 # 设置字体大小和类型
@@ -44,15 +41,15 @@ magick \( -size "${width}x${strip_height}" \
      \( -size "${date_width}x${date_height}" \
         xc:none \
         -fill white \
-        -draw "path 'M 0,${date_height} L ${date_width},${date_height} L ${date_width},0 Q ${date_width},${date_height} 0,${date_height} Z'" \
+        -draw "path 'M ${date_height},0 L ${date_width},0 L ${date_width},${date_height} L ${date_height},${date_height} C 0,${date_height} 0,0 ${date_height},0 Z'" \
         -fill "$theme_color" \
         -font "$font_type" \
         -pointsize $date_font_size \
-        -gravity center \
-        -annotate +0+5 "$current_date" \
+        -gravity east \
+        -annotate +10+0 "$current_date" \
      \) \
      -gravity northeast \
-     -geometry +${date_padding}+0 \
+     -geometry +0+${date_padding} \
      -composite \
   \) watermark.png
 
