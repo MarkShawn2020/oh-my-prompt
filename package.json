@@ -50,7 +50,7 @@
     "@types/node": "~20.17.24",
     "@types/prettyjson": "^0.0.33",
     "@types/uuid": "^10.0.0",
-    "@types/vscode": "^1.98.0",
+    "@types/vscode": "^1.86.0",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.1",
     "@vscode/test-cli": "^0.0.10",
