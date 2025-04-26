@@ -20,3 +20,7 @@ docs
 release
 assets
 !assets/logo-128.jpeg
+
+.mypy_cache
+.venv
+.cursorrules
