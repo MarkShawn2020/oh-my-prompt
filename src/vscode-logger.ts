@@ -32,7 +32,7 @@ export class VscodeLogger extends BaseLogger implements ILogger {
     this.logger.onDidChangeLogLevel((e: vscode.LogLevel) => {
       this.setLevel(vscodeLogLevelMap[e]);
     });
-    this.logger.show();
+    // this.logger.show();
   }
 
   protected log(level: LogLevel, ...args: unknown[]) {
